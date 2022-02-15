@@ -83,24 +83,19 @@ def padding(img):
         colunas_multiplo=base*math.ceil(colunas/base)
         #fazer a diferenca
         nr_colunas_extra=colunas_multiplo-colunas
-        coluna_final=img[:,:,-1]
+        
+        #guardar a ultima coluna e transforma-la em array numpy
+        coluna_final=img[:,-1]
         coluna_final=np.asarray(coluna_final)
+        
+        coluna_final=coluna_final.reshape(img.shape[0],1,3)
+
         #criar um array auxiliar com o numero de colunas a adicionar a img
         colunas_extra=np.tile(coluna_final,(1,nr_colunas_extra,1))
 
+        img=np.hstack((img,colunas_extra))
         
-        """linha_final=img[len(img)-1]
-        print(linha_final)
-        print(linha_final.shape)
-        linha_final_aux=[linha_final]
-        linha_final_aux=np.asarray(linha_final_aux)
-        print(linha_final_aux.shape)
-        print(img.shape)
-        for i in range(10):
-            img = np.vstack((img, linha_final_aux))
-        print(img.shape)
-        plt.figure()
-        plt.imshow(img)"""
+    return img
 
 
 def encoder(img):
@@ -116,20 +111,9 @@ def encoder(img):
     visualizar_img_colormap(r,"Verde",(0,0,0),(0,1,0),256)
     visualizar_img_colormap(r,"Azul",(0,0,0),(0,0,1),256)
     
-    padding(img)
+    #fazer padding da imagem
+    img=padding(img)
     
-    
-
-"""
-l=[ [ [1,2,3],[4,5,6],[7,8,9],[10,11,12]],[[13,14,15],[16,17,18],[19,20,21],[22,23,24]] ]
-p=np.asarray(l)
-
-#ultima coluna
-p[:,-1]
-"""
-    
-
-
 
 
 def decoder(img):

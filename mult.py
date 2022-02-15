@@ -80,13 +80,20 @@ EXERCICIO 4
 imagem 184*228
 
 184%16->resto é 8
-pegar na ultima linha e acrescentar 8 vezes
 
 nas colunas fazer o mesmo
 
 funcoes do numpy
 np.vstack
 np.hstack
+
+
+
+l=[ [ [1,2,3],[4,5,6],[7,8,9],[10,11,12]],[[13,14,15],[16,17,18],[19,20,21],[22,23,24]] ]
+p=np.asarray(l)
+
+#ultima coluna
+p[:,-1]
 
 
 """
