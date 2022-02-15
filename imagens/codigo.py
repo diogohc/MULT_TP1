@@ -42,7 +42,7 @@ def separar_canais(img):
 
 
 def juntar_canais(r, g, b):
-    img = np.zeros((297, 400, 3))
+    img = np.zeros((r.shape[0], r.shape[1], 3))
     img[:,:,0]=r
     img[:,:,1]=g
     img[:,:,2]=b
@@ -115,7 +115,6 @@ def encoder(img):
     visualizar_img_colormap(r,"Vermelho",(0,0,0),(1,0,0),256)
     visualizar_img_colormap(r,"Verde",(0,0,0),(0,1,0),256)
     visualizar_img_colormap(r,"Azul",(0,0,0),(0,0,1),256)
-    
     
     padding(img)
     
