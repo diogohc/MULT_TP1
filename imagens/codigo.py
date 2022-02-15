@@ -3,6 +3,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.colors as clr
 import numpy as np
+import math
 
 def ler_imagem(nome):
     img=plt.imread(nome)
@@ -64,7 +65,7 @@ def padding(img):
     if(isinstance(dif_linhas, float)):
         base=16
         #descobrir o multiplo de 16 mais proximo do numero
-        linhas_multiplo=base*round(linhas/base)
+        linhas_multiplo=base*math.ceil(linhas/base)
         #fazer a diferenca
         nr_linhas_extra=linhas_multiplo-linhas
         
@@ -79,14 +80,13 @@ def padding(img):
     if(isinstance(dif_colunas, float)):
         base=16
         #descobrir o multiplo de 16 mais proximo do numero
-        colunas_multiplo=base*round(linhas/base)
+        colunas_multiplo=base*math.ceil(colunas/base)
         #fazer a diferenca
-        nr_colunas_extra=colunas_multiplo-linhas
-        
-        coluna_final=[img[:, :, -1]]
+        nr_colunas_extra=colunas_multiplo-colunas
+        coluna_final=img[:,:,-1]
         coluna_final=np.asarray(coluna_final)
         #criar um array auxiliar com o numero de colunas a adicionar a img
-        colunas_extra=np.tile(coluna_final,(nr_colunas_extra,1,1))
+        colunas_extra=np.tile(coluna_final,(1,nr_colunas_extra,1))
 
         
         """linha_final=img[len(img)-1]
@@ -146,7 +146,7 @@ def decoder(img):
 
 
 def main():
-    encoder('barn_mountains.bmp')
+    encoder('logo.bmp')
     
     
 
