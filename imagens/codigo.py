@@ -9,6 +9,8 @@ def ler_imagem(nome):
     img=plt.imread(nome)
     plt.figure(1)
     plt.imshow(img) 
+    plt.title('Original')
+    plt.axis('off')
     return img
 
 
@@ -31,8 +33,8 @@ def visualizar_img_colormap(img, nome,inicio, fim, niveis):
     #R=img[:,:,0]
     #plt.imshow(R,cmap=cm)
     plt.imshow(img,cmap=cm)
-    plt.title(nome)
-
+    plt.title("Colormap "+nome)
+    plt.axis('off')
 
 
 def separar_canais(img):
@@ -98,6 +100,52 @@ def padding(img):
     return img
 
 
+def reverse_padding(nl, nc, img):
+    img = img[:nl, :nc, :]
+    return img
+
+
+def rgb_ycbcr(img):
+    m=np.array([[0.299, 0.587, 0.114],
+              [-0.168736, -0.331264, 0.5],
+              [0.5, -0.418688, -0.081312]])
+    
+    #multiplicar as matrizes
+    img_transformada=np.dot(img,m)
+    
+    #somar 128 aos canais Cb e Cr
+    img_transformada[:,:,[1,2]] += 128
+    img_transformada=img_transformada.astype('uint8')
+        
+    return img_transformada
+
+
+
+def ycbcr_rgb(img):
+    m=np.array([[0.299, 0.587, 0.114],
+              [-0.168736, -0.331264, 0.5],
+              [0.5, -0.418688, -0.081312]])
+    
+    #transformar matriz na inversa
+    m_inversa=np.linalg.inv(m)
+    
+    img=img.astype('float')
+    
+    #subtrair 128 aos canais Cb e Cr
+    img[:,:,[1,2]] -= 128
+    
+    #multiplicar as matrizes
+    img_transformada=np.dot(img,m_inversa)
+    
+    #truncar os valores
+    img_transformada[img_transformada<0]=0
+    img_transformada[img_transformada>255]=255
+    
+    img_transformada=img_transformada.astype('uint8')
+    
+    return img_transformada
+
+
 def encoder(img):
     img = ler_imagem(img)
     
@@ -113,6 +161,7 @@ def encoder(img):
     
     #fazer padding da imagem
     img=padding(img)
+    
     
 
 
@@ -130,7 +179,7 @@ def decoder(img):
 
 
 def main():
-    encoder('logo.bmp')
+    encoder('barn_mountains.bmp')
     
     
 
