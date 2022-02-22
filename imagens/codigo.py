@@ -100,7 +100,7 @@ def padding(img):
     return img
 
 
-def reverse_padding(nl, nc, img):
+def reverse_padding(img, nl, nc):
     img = img[:nl, :nc, :]
     return img
 
@@ -115,7 +115,6 @@ def rgb_ycbcr(img):
     
     #somar 128 aos canais Cb e Cr
     img_transformada[:,:,[1,2]] += 128
-    img_transformada=img_transformada.astype('uint8')
         
     return img_transformada
 
@@ -129,13 +128,15 @@ def ycbcr_rgb(img):
     #transformar matriz na inversa
     m_inversa=np.linalg.inv(m)
     
-    img=img.astype('float')
     
     #subtrair 128 aos canais Cb e Cr
     img[:,:,[1,2]] -= 128
     
     #multiplicar as matrizes
     img_transformada=np.dot(img,m_inversa)
+    
+    #arredondar
+    img_transformada=img_transformada.round()
     
     #truncar os valores
     img_transformada[img_transformada<0]=0
@@ -146,9 +147,69 @@ def ycbcr_rgb(img):
     return img_transformada
 
 
+#------------------------------------------------------------------Exercicio 6
+def downsampling_422(img):
+    y=img[:,:,0]
+    cb=img[:,:,1]
+    cr=img[:,:,2]
+    
+    aux=np.arange(1,y.shape[1],2)
+    
+    #apagar colunas impares de cb
+    cb=np.delete(cb, aux, axis=1)
+    
+    #apagar colunas impares de cr
+    cr=np.delete(cr, aux, axis=1)
+    
+    return y,cb,cr
+
+
+def downsampling_420(img):
+    y=img[:,:,0]
+    cb=img[:,:,1]
+    cr=img[:,:,2]
+
+    #vetor de numeros impares de 1 ate limite da imagem(colunas)
+    aux_colunas=np.arange(1,y.shape[1],2)
+    
+    #apagar colunas impares de cb
+    cb=np.delete(cb, aux_colunas, axis=1)
+    
+    #apagar colunas impares de cr
+    cr=np.delete(cr, aux_colunas, axis=1)
+    
+    
+    #vetor de numeros impares de 1 ate limite da imagem(linhas)
+    aux_linhas=np.arange(1, y.shape[0], 2)
+    
+    #apagar linhas impares de cb
+    cb=np.delete(cb, aux_linhas, axis=0)
+    
+    #apagar linhas impares de cr
+    cr=np.delete(cr, aux_linhas, axis=0)
+    
+    #img_transf=juntar_canais(y, cb, cr)
+    
+    return y, cb, cr
+#------------------------------------------------------------------
+
+def upsampling(y_d, cb_d, cr_d):
+    cb=np.repeat(cb_d,repeats=2,axis=0)
+    cb=np.repeat(cb,repeats=2,axis=1)
+    
+    cr=np.repeat(cr_d,repeats=2,axis=0)
+    cr=np.repeat(cr,repeats=2,axis=1)
+    
+    img=juntar_canais(y_d, cb, cr)
+
+    return img
+
+
 def encoder(img):
     img = ler_imagem(img)
-    
+    linhas=img.shape[0]
+    colunas=img.shape[1]
+
     #visualizar_img_colormap(img,"Teste",(0,0,0),(0,1,0),256)
     
     #Separar a imagem em canais R,G,B
@@ -162,16 +223,42 @@ def encoder(img):
     #fazer padding da imagem
     img=padding(img)
     
+    #transformar imagem para o modelo YCbCr
+    img_transf=rgb_ycbcr(img)
+    
+    #mostrar diferentes canais da imagem
+    y,cb,cr=separar_canais(img_transf)
+
+    visualizar_img_colormap(y,"Y Cinzento",(0,0,0),(0.5,0.5,0.5),256)
+    visualizar_img_colormap(cb,"Cb Cinzento",(0,0,0),(0.5,0.5,0.5),256)
+    visualizar_img_colormap(cr,"Cr Cinzento",(0,0,0),(0.5,0.5,0.5),256)   
+    
+    #fazer downsampling
+    y_d, cb_d, cr_d=downsampling_420(img_transf)
+    visualizar_img_colormap(y,"Y_d Cinzento",(0,0,0),(0.5,0.5,0.5),256)
+    visualizar_img_colormap(cb,"Cb_d Cinzento",(0,0,0),(0.5,0.5,0.5),256)
+    visualizar_img_colormap(cr,"Cr_d Cinzento",(0,0,0),(0.5,0.5,0.5),256)
+    print("Dimensões de y_d: ",y_d.shape)
+    print("Dimensões de cb_d: ",cb_d.shape)
+    print("Dimensões de cr_d: ",cr_d.shape)
     
 
-
-def decoder(img):
-    r,g,b=separar_canais(img)
-    jj=juntar_canais(r, g, b)
-    plt.figure()
-    plt.imshow(jj)
     
-    return
+    return  linhas, colunas, y_d, cb_d, cr_d
+
+
+def decoder(nr_linhas, nr_colunas, y_d, cb_d, cr_d):
+    #fazer upsampling
+    img=upsampling(y_d, cb_d, cr_d)
+    
+    #transformar para o modelo rgb
+    img_original=ycbcr_rgb(img)
+    
+    #reverter o padding
+    img_original=reverse_padding(img_original, nr_linhas, nr_colunas)
+
+    
+    return img_original
 
 
 
@@ -179,7 +266,17 @@ def decoder(img):
 
 
 def main():
-    encoder('barn_mountains.bmp')
+    #codificar
+    linhas, colunas, y_d, cb_d, cr_d = encoder('barn_mountains.bmp')
+    
+    #descodificar
+    img_original=decoder(linhas, colunas, y_d, cb_d, cr_d)
+    
+    #mostrar imagem original
+    plt.figure()
+    plt.imshow(img_original)
+    plt.axis('off')
+    plt.title('Imagem original')
     
     
 

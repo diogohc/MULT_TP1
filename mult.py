@@ -118,6 +118,22 @@ alinea 5.4 tem a ver com a teoria
 """
 
 
+"""
+Exercicio 6
+
+so se faz downsampling nos canais cb e cr(no y não)
+componente y é a + perceptivel ao olho humano
+"""
+
+
+"""
+Exercicio 7
+
+aplicar a DCT aos 3 canais (y, cb, cr)
+"""
+
+
+
 
 
 """
