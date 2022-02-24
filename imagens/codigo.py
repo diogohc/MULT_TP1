@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as clr
 import numpy as np
 import math
+import scipy.fftpack as fft
 
 def ler_imagem(nome):
     img=plt.imread(nome)
@@ -142,6 +143,7 @@ def ycbcr_rgb(img):
     img_transformada[img_transformada<0]=0
     img_transformada[img_transformada>255]=255
     
+    
     img_transformada=img_transformada.astype('uint8')
     
     return img_transformada
@@ -191,7 +193,7 @@ def downsampling_420(img):
     #img_transf=juntar_canais(y, cb, cr)
     
     return y, cb, cr
-#------------------------------------------------------------------
+
 
 def upsampling(y_d, cb_d, cr_d):
     cb=np.repeat(cb_d,repeats=2,axis=0)
@@ -203,6 +205,27 @@ def upsampling(y_d, cb_d, cr_d):
     img=juntar_canais(y_d, cb, cr)
 
     return img
+#------------------------------------------------------------------
+
+
+#------------------------------------------------------------------Exercicio 7
+def dct(y, cb, cr):
+    y_dct = fft.dct(fft.dct(y, norm="ortho").T, norm="ortho").T
+    cb_dct = fft.dct(fft.dct(cb, norm="ortho").T, norm="ortho").T
+    cr_dct = fft.dct(fft.dct(cr, norm="ortho").T, norm="ortho").T
+        
+    return y_dct, cb_dct, cr_dct
+
+
+def dct_inverso(y_dct, cb_dct, cr_dct):
+
+    y = fft.idct(fft.idct(y_dct, norm="ortho").T, norm="ortho").T
+    cb = fft.idct(fft.idct(cb_dct, norm="ortho").T, norm="ortho").T
+    cr = fft.idct(fft.idct(cr_dct, norm="ortho").T, norm="ortho").T
+    
+
+    return y, cb, cr
+#------------------------------------------------------------------
 
 
 def encoder(img):
@@ -229,27 +252,55 @@ def encoder(img):
     #mostrar diferentes canais da imagem
     y,cb,cr=separar_canais(img_transf)
 
-    visualizar_img_colormap(y,"Y Cinzento",(0,0,0),(0.5,0.5,0.5),256)
-    visualizar_img_colormap(cb,"Cb Cinzento",(0,0,0),(0.5,0.5,0.5),256)
-    visualizar_img_colormap(cr,"Cr Cinzento",(0,0,0),(0.5,0.5,0.5),256)   
+    visualizar_img_colormap(y,"Y Cinzento",(0,0,0),(1,1,1),256)
+    visualizar_img_colormap(cb,"Cb Cinzento",(0,0,0),(1,1,1),256)
+    visualizar_img_colormap(cr,"Cr Cinzento",(0,0,0),(1,1,1),256)   
     
     #fazer downsampling
     y_d, cb_d, cr_d=downsampling_420(img_transf)
-    visualizar_img_colormap(y,"Y_d Cinzento",(0,0,0),(0.5,0.5,0.5),256)
-    visualizar_img_colormap(cb,"Cb_d Cinzento",(0,0,0),(0.5,0.5,0.5),256)
-    visualizar_img_colormap(cr,"Cr_d Cinzento",(0,0,0),(0.5,0.5,0.5),256)
+    visualizar_img_colormap(y,"Y_d Cinzento",(0,0,0),(1,1,1),256)
+    visualizar_img_colormap(cb,"Cb_d Cinzento",(0,0,0),(1,1,1),256)
+    visualizar_img_colormap(cr,"Cr_d Cinzento",(0,0,0),(1,1,1),256)
     print("Dimensões de y_d: ",y_d.shape)
     print("Dimensões de cb_d: ",cb_d.shape)
     print("Dimensões de cr_d: ",cr_d.shape)
     
+    print("ANTES - Y_d[0][0]",y_d[0][0])
+    #fazer a DCT
+    y_dct, cb_dct, cr_dct=dct(y_d, cb_d, cr_d)
+    
+    logY_dct=np.log(np.abs(y_dct) + 0.0001)
+    logCB_dct=np.log(np.abs(cb_dct) + 0.0001)
+    logCR_dct=np.log(np.abs(cr_dct) + 0.0001)
+    
+    #visualizar y_dct
+    plt.figure()
+    plt.imshow(logY_dct)
+    plt.axis('off')
+    plt.title('Y_dct')
+    #visualizar cb_dct
+    plt.figure()
+    plt.imshow(logCB_dct)
+    plt.axis('off')
+    plt.title('cb_dct')
+    #visualizar cr_dct
+    plt.figure()
+    plt.imshow(logCR_dct)
+    plt.axis('off')
+    plt.title('cr_dct')
 
     
-    return  linhas, colunas, y_d, cb_d, cr_d
+    return  linhas, colunas, y_dct, cb_dct, cr_dct
 
 
-def decoder(nr_linhas, nr_colunas, y_d, cb_d, cr_d):
+def decoder(nr_linhas, nr_colunas, y_dct, cb_dct, cr_dct):
+    #fazer inverso da dct
+    y_d, cb_d, cr_d = dct_inverso(y_dct, cb_dct, cr_dct)
+    print("DEPOIS Y_d[0][0]",y_d[0][0])
+    
     #fazer upsampling
     img=upsampling(y_d, cb_d, cr_d)
+    
     
     #transformar para o modelo rgb
     img_original=ycbcr_rgb(img)
