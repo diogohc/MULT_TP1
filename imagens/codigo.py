@@ -217,6 +217,38 @@ def dct_inverso(y_dct, cb_dct, cr_dct):
     
 
     return y, cb, cr
+
+
+
+def dct_em_blocos(canal, bloco):
+
+    linhaLimite=bloco
+    colunaLimite=bloco
+    for i in range(0,canal.shape[0],bloco):
+        for j in range(0,canal.shape[1],bloco):
+            canal[i:linhaLimite,j:colunaLimite]=fft.dct(fft.dct(canal[i:linhaLimite,j:colunaLimite], norm="ortho").T, norm="ortho").T
+            
+            colunaLimite+=bloco
+        
+        colunaLimite=bloco
+        linhaLimite+=bloco
+        
+    return canal
+
+def dct_inversa_em_blocos(canal, bloco):
+
+    linhaLimite=bloco
+    colunaLimite=bloco
+    for i in range(0,canal.shape[0],bloco):
+        for j in range(0,canal.shape[1],bloco):
+            canal[i:linhaLimite,j:colunaLimite]=fft.idct(fft.idct(canal[i:linhaLimite,j:colunaLimite], norm="ortho").T, norm="ortho").T
+            
+            colunaLimite+=bloco
+        
+        colunaLimite=bloco
+        linhaLimite+=bloco
+        
+    return canal
 #------------------------------------------------------------------
 
 
@@ -262,7 +294,7 @@ def encoder(img):
         
     print("ANTES - Y_d[0][0]",y_d[0][0])
     #fazer a DCT
-    y_dct, cb_dct, cr_dct=dct(y_d, cb_d, cr_d)
+    """y_dct, cb_dct, cr_dct=dct(y_d, cb_d, cr_d)
     
     logY_dct=np.log(np.abs(y_dct) + 0.0001)
     logCB_dct=np.log(np.abs(cb_dct) + 0.0001)
@@ -271,20 +303,55 @@ def encoder(img):
     #visualizar os 3 canais depois de aplicar a DCT
     visualizar_img_colormap(logY_dct,"logY_dct Cinzento",(0,0,0),(1,1,1),256)
     visualizar_img_colormap(logCB_dct,"LogCB_dct Cinzento",(0,0,0),(1,1,1),256)
-    visualizar_img_colormap(logCR_dct,"LogCR_dct Cinzento",(0,0,0),(1,1,1),256)
+    visualizar_img_colormap(logCR_dct,"LogCR_dct Cinzento",(0,0,0),(1,1,1),256)"""
     
+
+    #fazer a dct em blocos de 8
+    y_dct8=dct_em_blocos(y_d,8)
+    cb_dct8=dct_em_blocos(cb_d,8)
+    cr_dct8=dct_em_blocos(cr_d,8)
+    
+    #fazer o logaritmo
+    logY_dct8=np.log(np.abs(y_dct8) + 0.0001)
+    logCB_dct8=np.log(np.abs(cb_dct8) + 0.0001)
+    logCR_dct8=np.log(np.abs(cr_dct8) + 0.0001)
+    
+    #visualizar os canais depois da DCT
+    visualizar_img_colormap(logY_dct8,"Y_DCT8 Cinzento",(0,0,0),(1,1,1),256)
+    visualizar_img_colormap(logCB_dct8,"CB_DCT8 Cinzento",(0,0,0),(1,1,1),256)
+    visualizar_img_colormap(logCR_dct8,"CR_DCT8 Cinzento",(0,0,0),(1,1,1),256)
+    
+    
+    #fazer a dct em blocos de 64
+    """y_dct64=dct_em_blocos(y_d,64)
+    cb_dct64=dct_em_blocos(cb_d,64)
+    cr_dct64=dct_em_blocos(cr_d,64)
+    
+    #fazer o logaritmo
+    logY_dct64=np.log(np.abs(y_dct64) + 0.0001)
+    logCB_dct64=np.log(np.abs(cb_dct64) + 0.0001)
+    logCR_dct64=np.log(np.abs(cr_dct64) + 0.0001)
+    
+    #visualizar os canais depois da DCT
+    visualizar_img_colormap(logY_dct64,"Y_DCT64 Cinzento",(0,0,0),(1,1,1),256)
+    visualizar_img_colormap(logCB_dct64,"CB_DCT64 Cinzento",(0,0,0),(1,1,1),256)
+    visualizar_img_colormap(logCR_dct64,"CR_DCT64 Cinzento",(0,0,0),(1,1,1),256)"""
+     
         
-    return  linhas, colunas, y_dct, cb_dct, cr_dct
+    return  linhas, colunas, y_dct8, cb_dct8, cr_dct8
 
 
 def decoder(nr_linhas, nr_colunas, y_dct, cb_dct, cr_dct):
-    #fazer inverso da dct
-    y_d, cb_d, cr_d = dct_inverso(y_dct, cb_dct, cr_dct)
+    #fazer inverso da dct em blocos de 8
+    y_d=dct_inversa_em_blocos(y_dct, 8)
+    cb_d=dct_inversa_em_blocos(cb_dct, 8)
+    cr_d=dct_inversa_em_blocos(cr_dct, 8)
+    
+    
     print("DEPOIS Y_d[0][0]",y_d[0][0])
     
     #fazer upsampling
     img=upsampling(y_d, cb_d, cr_d)
-    #print(cb_d[:8,:8])
     
     
     #transformar para o modelo rgb
@@ -293,8 +360,6 @@ def decoder(nr_linhas, nr_colunas, y_dct, cb_dct, cr_dct):
     #reverter o padding
     img_original=reverse_padding(img_original, nr_linhas, nr_colunas)
     
-
-
     
     return img_original
 
@@ -316,7 +381,8 @@ def main():
     plt.axis('off')
     plt.title('Imagem original')
     
-    
+           
+
 
 
 if __name__ == "__main__":
