@@ -6,6 +6,11 @@ import numpy as np
 import math
 import scipy.fftpack as fft
 
+matriz = np.array([[0.299, 0.587, 0.114],
+              [-0.168736, -0.331264, 0.5],
+              [0.5, -0.418688, -0.081312]])
+
+
 def ler_imagem(nome):
     img=plt.imread(nome)
     plt.figure(1)
@@ -15,14 +20,6 @@ def ler_imagem(nome):
     return img
 
 
-def color_map(nome, inicio, fim, niveis):
-    #cm=clr.LinearSegmentedColormap.from_List('my_red',[(0,0,0),(1,0,0)], N=256 )
-    cores=[]
-    cores.append(inicio)
-    cores.append(fim)
-    cm = clr.LinearSegmentedColormap.from_list(nome, cores, niveis)
-    return cm
-
 
 def visualizar_img_colormap(img, nome,inicio, fim, niveis):
     plt.figure()
@@ -31,8 +28,7 @@ def visualizar_img_colormap(img, nome,inicio, fim, niveis):
     cores.append(inicio)
     cores.append(fim)
     cm=clr.LinearSegmentedColormap.from_list(nome, cores, niveis)
-    #R=img[:,:,0]
-    #plt.imshow(R,cmap=cm)
+
     plt.imshow(img,cmap=cm)
     plt.title("Colormap "+nome)
     plt.axis('off')
@@ -45,12 +41,15 @@ def separar_canais(img):
     return r,g,b
 
 
-def juntar_canais(r, g, b):
+def juntar_canais(r, g, b, converter=True):
     img = np.zeros((r.shape[0], r.shape[1], 3))
     img[:,:,0]=r
     img[:,:,1]=g
     img[:,:,2]=b
-    imagem=img.astype('uint8')
+    if(converter):
+        imagem=img.astype('uint8')
+    else:
+        imagem=img
     return imagem
 
 
@@ -66,14 +65,13 @@ def padding(img):
     dif_colunas=colunas/16
     
     if(isinstance(dif_linhas, float)):
-        base=16
-        #descobrir o multiplo de 16 mais proximo do numero
-        linhas_multiplo=base*math.ceil(linhas/base)
-        #fazer a diferenca
-        nr_linhas_extra=linhas_multiplo-linhas
+        resto=linhas%16
+        nr_linhas_extra=16-resto
         
+        #guardar a ultima linha e transformar em array numpy
         linha_final=[img[len(img)-1]]
         linha_final=np.asarray(linha_final)
+        
         #criar um array auxiliar com o numero de linhas a adicionar a img
         linhas_extra=np.tile(linha_final,(nr_linhas_extra,1,1))
         #adicionar as linhas extra a imagem
@@ -81,11 +79,8 @@ def padding(img):
         
         
     if(isinstance(dif_colunas, float)):
-        base=16
-        #descobrir o multiplo de 16 mais proximo do numero
-        colunas_multiplo=base*math.ceil(colunas/base)
-        #fazer a diferenca
-        nr_colunas_extra=colunas_multiplo-colunas
+        resto=colunas%16
+        nr_colunas_extra=16-resto
         
         #guardar a ultima coluna e transforma-la em array numpy
         coluna_final=img[:,-1]
@@ -107,27 +102,24 @@ def reverse_padding(img, nl, nc):
 
 
 def rgb_ycbcr(img):
-    m=np.array([[0.299, 0.587, 0.114],
-              [-0.168736, -0.331264, 0.5],
-              [0.5, -0.418688, -0.081312]])
+    m=matriz
     
     #multiplicar as matrizes
-    img_transformada=np.dot(img,m)
+    img_transformada=np.dot(img,m.T)
     
     #somar 128 aos canais Cb e Cr
     img_transformada[:,:,[1,2]] += 128
+        
         
     return img_transformada
 
 
 
 def ycbcr_rgb(img):
-    m=np.array([[0.299, 0.587, 0.114],
-              [-0.168736, -0.331264, 0.5],
-              [0.5, -0.418688, -0.081312]])
+    m=matriz
     
     #transformar matriz na inversa
-    m_inversa=np.linalg.inv(m)
+    m_inversa=np.linalg.inv(m.T)
     
     
     #subtrair 128 aos canais Cb e Cr
@@ -202,7 +194,7 @@ def upsampling(y_d, cb_d, cr_d):
     cr=np.repeat(cr_d,repeats=2,axis=0)
     cr=np.repeat(cr,repeats=2,axis=1)
     
-    img=juntar_canais(y_d, cb, cr)
+    img=juntar_canais(y_d, cb, cr,False)
 
     return img
 #------------------------------------------------------------------
@@ -237,6 +229,7 @@ def encoder(img):
     
     #Separar a imagem em canais R,G,B
     r,g,b=separar_canais(img)
+
     
     #visualizar os 3 canais com os colormaps adequados
     visualizar_img_colormap(r,"Vermelho",(0,0,0),(1,0,0),256)
@@ -256,6 +249,7 @@ def encoder(img):
     visualizar_img_colormap(cb,"Cb Cinzento",(0,0,0),(1,1,1),256)
     visualizar_img_colormap(cr,"Cr Cinzento",(0,0,0),(1,1,1),256)   
     
+    
     #fazer downsampling
     y_d, cb_d, cr_d=downsampling_420(img_transf)
     visualizar_img_colormap(y,"Y_d Cinzento",(0,0,0),(1,1,1),256)
@@ -265,6 +259,7 @@ def encoder(img):
     print("Dimensões de cb_d: ",cb_d.shape)
     print("Dimensões de cr_d: ",cr_d.shape)
     
+        
     print("ANTES - Y_d[0][0]",y_d[0][0])
     #fazer a DCT
     y_dct, cb_dct, cr_dct=dct(y_d, cb_d, cr_d)
@@ -273,23 +268,12 @@ def encoder(img):
     logCB_dct=np.log(np.abs(cb_dct) + 0.0001)
     logCR_dct=np.log(np.abs(cr_dct) + 0.0001)
     
-    #visualizar y_dct
-    plt.figure()
-    plt.imshow(logY_dct)
-    plt.axis('off')
-    plt.title('Y_dct')
-    #visualizar cb_dct
-    plt.figure()
-    plt.imshow(logCB_dct)
-    plt.axis('off')
-    plt.title('cb_dct')
-    #visualizar cr_dct
-    plt.figure()
-    plt.imshow(logCR_dct)
-    plt.axis('off')
-    plt.title('cr_dct')
-
+    #visualizar os 3 canais depois de aplicar a DCT
+    visualizar_img_colormap(logY_dct,"logY_dct Cinzento",(0,0,0),(1,1,1),256)
+    visualizar_img_colormap(logCB_dct,"LogCB_dct Cinzento",(0,0,0),(1,1,1),256)
+    visualizar_img_colormap(logCR_dct,"LogCR_dct Cinzento",(0,0,0),(1,1,1),256)
     
+        
     return  linhas, colunas, y_dct, cb_dct, cr_dct
 
 
@@ -300,6 +284,7 @@ def decoder(nr_linhas, nr_colunas, y_dct, cb_dct, cr_dct):
     
     #fazer upsampling
     img=upsampling(y_d, cb_d, cr_d)
+    #print(cb_d[:8,:8])
     
     
     #transformar para o modelo rgb
@@ -307,6 +292,8 @@ def decoder(nr_linhas, nr_colunas, y_dct, cb_dct, cr_dct):
     
     #reverter o padding
     img_original=reverse_padding(img_original, nr_linhas, nr_colunas)
+    
+
 
     
     return img_original
