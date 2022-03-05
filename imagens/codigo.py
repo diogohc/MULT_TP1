@@ -6,11 +6,18 @@ import numpy as np
 import math
 import scipy.fftpack as fft
 
+#matriz auxiliar de conversao RGB to YCbCr 
 matriz = np.array([[0.299, 0.587, 0.114],
               [-0.168736, -0.331264, 0.5],
               [0.5, -0.418688, -0.081312]])
 
-
+"""
+Esta funçao recebe uma imagem faz o seu plot e retorna o arry com a informaçao 
+parametros :
+    nome --> nome da imagem bmp
+return :
+    img --> array com a informaçao da imagem
+"""
 def ler_imagem(nome):
     img=plt.imread(nome)
     plt.figure(1)
@@ -20,7 +27,15 @@ def ler_imagem(nome):
     return img
 
 
-
+"""
+Esta funçao cria e faz o colormap para a imagem pertendida
+parametros :
+    img --> canal da imagem a utilizar
+    nome --> informaçao com o colormap usado
+    inicio --> tuplo com 1a cor 
+    fim --> tuplo com 2a cor 
+    niveis --> número de níveis de quantização rgb
+"""
 def visualizar_img_colormap(img, nome,inicio, fim, niveis):
     plt.figure()
     #cm_aux=clr.LinearSegmentedColormap.from_list('my_red',[(0,0,0),(1,0,0)], N=256 )
@@ -33,14 +48,31 @@ def visualizar_img_colormap(img, nome,inicio, fim, niveis):
     plt.title("Colormap "+nome)
     plt.axis('off')
 
-
+"""
+Esta funçao separa os canais da imagem
+parametros :
+    img --> nome da imagem bmp
+return :
+    r --> informaçao da imagem no canal[0]
+    g --> informaçao da imagem no canal[1]
+    b --> informaçao da imagem no canal[2]
+"""
 def separar_canais(img):
     r=img[:,:,0]
     g=img[:,:,1]
     b=img[:,:,2]
     return r,g,b
 
-
+"""
+Esta funçao junta os 3 canais
+parametros :
+    r --> informaçao da imagem no canal[0]
+    g --> informaçao da imagem no canal[1]
+    b --> informaçao da imagem no canal[2]
+    converter --> informa se os canais a juntar sao RGB (true), se YCbCr (false)
+return :
+    imagem --> informaçao dos 3 canais da imagem juntos
+"""
 def juntar_canais(r, g, b, converter=True):
     img = np.zeros((r.shape[0], r.shape[1], 3))
     img[:,:,0]=r
@@ -53,7 +85,14 @@ def juntar_canais(r, g, b, converter=True):
     return imagem
 
 
-
+"""
+Esta funçao verifica se a imagem é 16x16, se nao for adiciona atraves da replicaçao
+ da ultima linha e/ou coluna, respetivamente as linhas e/ou colunas em falta
+parametros :
+    img --> informaçao original da imagem
+return :
+    img --> informaçao da imagem deppois do padding
+"""
 def padding(img):
     linhas=img.shape[0]
     colunas=img.shape[1]
@@ -95,12 +134,26 @@ def padding(img):
         
     return img
 
-
+"""
+Esta funçao retorna a imagem original depois do padding
+parametros :
+    img --> imagem com padding
+    nl --> numero de linhas originais
+    nc --> numero de colunas originais
+return :
+    img --> imagem original(sem padding)
+"""
 def reverse_padding(img, nl, nc):
     img = img[:nl, :nc, :]
     return img
 
-
+"""
+Esta funçao converte os canais RGB em YCbCr com recurso à matriz de conversao 
+parametros :
+    img --> informaçao da imagem em RGB
+return :
+    img_transformada --> informaçao da imagem em YCbCr
+"""
 def rgb_ycbcr(img):
     m=matriz
     
@@ -114,7 +167,13 @@ def rgb_ycbcr(img):
     return img_transformada
 
 
-
+"""
+Esta funçao converte os canais YCbCr em RGB com recurso à inversa da matriz de conversao
+parametros :
+    img --> informaçao da imagem em YCbCr
+return :
+    img_transformada --> informaçao da imagem em RGB
+"""
 def ycbcr_rgb(img):
     m=matriz
     
@@ -142,6 +201,45 @@ def ycbcr_rgb(img):
 
 
 #------------------------------------------------------------------Exercicio 6
+"""
+Esta funçao remove informaçao dos canais menos sensiveis ao olho humano (cb e cr)
+para os dois casos testes alvo de estudo ( 4:2:2 e 4:2:0 )
+parametros :
+    img --> informaçao da imagem
+return :
+    y --> informaçao do canal Y
+    cb --> informaçao do canal Cb
+    cr --> informaçao do canal Cr
+    """
+def downsampling(img, caso):
+    y=img[:,:,0]
+    cb=img[:,:,1]
+    cr=img[:,:,2]
+
+    #vetor de numeros impares de 1 ate limite da imagem(colunas)
+    aux_colunas=np.arange(1,y.shape[1],2)
+    
+    #apagar colunas impares de cb
+    cb=np.delete(cb, aux_colunas, axis=1)
+    
+    #apagar colunas impares de cr
+    cr=np.delete(cr, aux_colunas, axis=1)
+
+    #para o caso em que tambem é necessario eliminar colunas
+    if caso%10 == 0:
+        #vetor de numeros impares de 1 ate limite da imagem(linhas)
+        aux_linhas=np.arange(1, y.shape[0], 2)
+        
+        #apagar linhas impares de cb
+        cb=np.delete(cb, aux_linhas, axis=0)
+        
+        #apagar linhas impares de cr
+        cr=np.delete(cr, aux_linhas, axis=0)
+        
+        #img_transf=juntar_canais(y, cb, cr)
+    
+    return y, cb, cr
+
 def downsampling_422(img):
     y=img[:,:,0]
     cb=img[:,:,1]
@@ -186,7 +284,15 @@ def downsampling_420(img):
     
     return y, cb, cr
 
-
+"""
+Esta funçao reconstroi a imagem com downsampling 
+parametros :
+    y_d --> informaçao do canal Y com downsampling
+    cb_d --> informaçao do canal Cb com downsampling
+    cr_d --> informaçao do canal Cr com downsampling
+return :
+    img --> informaçao da imagem original
+"""
 def upsampling(y_d, cb_d, cr_d):
     cb=np.repeat(cb_d,repeats=2,axis=0)
     cb=np.repeat(cb,repeats=2,axis=1)
@@ -201,6 +307,17 @@ def upsampling(y_d, cb_d, cr_d):
 
 
 #------------------------------------------------------------------Exercicio 7
+"""
+Esta funçao faz o calculo da transformada discreta do cosseno (DCT) para a imagem toda
+parametros :
+    y --> informaçao do canal Y
+    cb --> informaçao do canal Cb
+    cr --> informaçao do canal Cr
+return :
+    y_dct --> informaçao da DCT no canal Y
+    cb_dct --> informaçao da DCT no canal Cb
+    cr_dct --> informaçao da DCT no canal Cr
+"""
 def dct(y, cb, cr):
     y_dct = fft.dct(fft.dct(y, norm="ortho").T, norm="ortho").T
     cb_dct = fft.dct(fft.dct(cb, norm="ortho").T, norm="ortho").T
@@ -208,7 +325,17 @@ def dct(y, cb, cr):
         
     return y_dct, cb_dct, cr_dct
 
-
+"""
+Esta funçao faz o calculo inverso da transformada discreta do cosseno (DCT) para a imagem toda
+parametros :
+    y_dct --> informaçao da DCT no canal Y
+    cb_dct --> informaçao da DCT no canal Cb
+    cr_dct --> informaçao da DCT no canal Cr
+return :
+    y --> informaçao do inverso da DCT no canal Y
+    cb --> informaçao do inverso da DCT no canal Cb
+    cr --> informaçao do inverso da DCT no canal Cr
+"""
 def dct_inverso(y_dct, cb_dct, cr_dct):
 
     y = fft.idct(fft.idct(y_dct, norm="ortho").T, norm="ortho").T
@@ -219,7 +346,15 @@ def dct_inverso(y_dct, cb_dct, cr_dct):
     return y, cb, cr
 
 
-
+"""
+Esta funçao faz o calculo da transformada discreta do cosseno (DCT) para blocos 
+da imagem com tamanho a definir, para um determinado canal  
+parametros :
+    canal --> indica o canal ao qual se vai aplicar a DCT em blocos
+    bloco --> indica o tamanho do bloco que em se divide a imagem
+return :
+    canal --> informaçao do canal depois da aplicaçao da DCT em todos os seus blocos 
+"""
 def dct_em_blocos(canal, bloco):
 
     linhaLimite=bloco
@@ -235,6 +370,15 @@ def dct_em_blocos(canal, bloco):
         
     return canal
 
+"""
+Esta funçao faz o calculo inverso da transformada discreta do cosseno (DCT) para blocos 
+da imagem com tamanho a definir, para um determinado canal  
+parametros :
+    canal --> indica o canal ao qual se vai aplicar a inversa da DCT em blocos
+    bloco --> indica o tamanho do bloco que em se divide a imagem
+return :
+    canal --> informaçao do canal depois da aplicaçao da inversa da DCT em todos os seus blocos 
+"""
 def dct_inversa_em_blocos(canal, bloco):
 
     linhaLimite=bloco
@@ -253,6 +397,14 @@ def dct_inversa_em_blocos(canal, bloco):
 
 
 def encoder(img):
+    #variaveis auxiliares para plot
+    showColormapRGB = True
+    showColormapYCbCr = True
+    showDownsampling = True
+    DCTimage = False
+    DCT8x8 = True
+    DCT64x64 = False
+
     img = ler_imagem(img)
     linhas=img.shape[0]
     colunas=img.shape[1]
@@ -264,9 +416,10 @@ def encoder(img):
 
     
     #visualizar os 3 canais com os colormaps adequados
-    visualizar_img_colormap(r,"Vermelho",(0,0,0),(1,0,0),256)
-    visualizar_img_colormap(r,"Verde",(0,0,0),(0,1,0),256)
-    visualizar_img_colormap(r,"Azul",(0,0,0),(0,0,1),256)
+    if showColormapRGB:
+        visualizar_img_colormap(r,"Vermelho",(0,0,0),(1,0,0),256)
+        visualizar_img_colormap(r,"Verde",(0,0,0),(0,1,0),256)
+        visualizar_img_colormap(r,"Azul",(0,0,0),(0,0,1),256)
     
     #fazer padding da imagem
     img=padding(img)
@@ -277,16 +430,19 @@ def encoder(img):
     #mostrar diferentes canais da imagem
     y,cb,cr=separar_canais(img_transf)
 
-    visualizar_img_colormap(y,"Y Cinzento",(0,0,0),(1,1,1),256)
-    visualizar_img_colormap(cb,"Cb Cinzento",(0,0,0),(1,1,1),256)
-    visualizar_img_colormap(cr,"Cr Cinzento",(0,0,0),(1,1,1),256)   
+    if showColormapYCbCr:
+        visualizar_img_colormap(y,"Y Cinzento",(0,0,0),(1,1,1),256)
+        visualizar_img_colormap(cb,"Cb Cinzento",(0,0,0),(1,1,1),256)
+        visualizar_img_colormap(cr,"Cr Cinzento",(0,0,0),(1,1,1),256)   
     
     
     #fazer downsampling
-    y_d, cb_d, cr_d=downsampling_420(img_transf)
-    visualizar_img_colormap(y,"Y_d Cinzento",(0,0,0),(1,1,1),256)
-    visualizar_img_colormap(cb,"Cb_d Cinzento",(0,0,0),(1,1,1),256)
-    visualizar_img_colormap(cr,"Cr_d Cinzento",(0,0,0),(1,1,1),256)
+    #y_d, cb_d, cr_d=downsampling_420(img_transf)
+    y_d, cb_d, cr_d=downsampling(img_transf, 420)
+    if showDownsampling:
+        visualizar_img_colormap(y,"Y_d Cinzento",(0,0,0),(1,1,1),256)
+        visualizar_img_colormap(cb,"Cb_d Cinzento",(0,0,0),(1,1,1),256)
+        visualizar_img_colormap(cr,"Cr_d Cinzento",(0,0,0),(1,1,1),256)
     print("Dimensões de y_d: ",y_d.shape)
     print("Dimensões de cb_d: ",cb_d.shape)
     print("Dimensões de cr_d: ",cr_d.shape)
@@ -294,16 +450,17 @@ def encoder(img):
         
     print("ANTES - Y_d[0][0]",y_d[0][0])
     #fazer a DCT
-    """y_dct, cb_dct, cr_dct=dct(y_d, cb_d, cr_d)
-    
-    logY_dct=np.log(np.abs(y_dct) + 0.0001)
-    logCB_dct=np.log(np.abs(cb_dct) + 0.0001)
-    logCR_dct=np.log(np.abs(cr_dct) + 0.0001)
-    
-    #visualizar os 3 canais depois de aplicar a DCT
-    visualizar_img_colormap(logY_dct,"logY_dct Cinzento",(0,0,0),(1,1,1),256)
-    visualizar_img_colormap(logCB_dct,"LogCB_dct Cinzento",(0,0,0),(1,1,1),256)
-    visualizar_img_colormap(logCR_dct,"LogCR_dct Cinzento",(0,0,0),(1,1,1),256)"""
+    if DCTimage:
+        y_dct, cb_dct, cr_dct=dct(y_d, cb_d, cr_d)
+        
+        logY_dct=np.log(np.abs(y_dct) + 0.0001)
+        logCB_dct=np.log(np.abs(cb_dct) + 0.0001)
+        logCR_dct=np.log(np.abs(cr_dct) + 0.0001)
+        
+        #visualizar os 3 canais depois de aplicar a DCT
+        visualizar_img_colormap(logY_dct,"logY_dct Cinzento",(0,0,0),(1,1,1),256)
+        visualizar_img_colormap(logCB_dct,"LogCB_dct Cinzento",(0,0,0),(1,1,1),256)
+        visualizar_img_colormap(logCR_dct,"LogCR_dct Cinzento",(0,0,0),(1,1,1),256)
     
 
     #fazer a dct em blocos de 8
@@ -311,32 +468,33 @@ def encoder(img):
     cb_dct8=dct_em_blocos(cb_d,8)
     cr_dct8=dct_em_blocos(cr_d,8)
     
+    if DCT8x8:
     #fazer o logaritmo
-    logY_dct8=np.log(np.abs(y_dct8) + 0.0001)
-    logCB_dct8=np.log(np.abs(cb_dct8) + 0.0001)
-    logCR_dct8=np.log(np.abs(cr_dct8) + 0.0001)
+        logY_dct8=np.log(np.abs(y_dct8) + 0.0001)
+        logCB_dct8=np.log(np.abs(cb_dct8) + 0.0001)
+        logCR_dct8=np.log(np.abs(cr_dct8) + 0.0001)
+        
+        #visualizar os canais depois da DCT
+        visualizar_img_colormap(logY_dct8,"Y_DCT8 Cinzento",(0,0,0),(1,1,1),256)
+        visualizar_img_colormap(logCB_dct8,"CB_DCT8 Cinzento",(0,0,0),(1,1,1),256)
+        visualizar_img_colormap(logCR_dct8,"CR_DCT8 Cinzento",(0,0,0),(1,1,1),256)
     
-    #visualizar os canais depois da DCT
-    visualizar_img_colormap(logY_dct8,"Y_DCT8 Cinzento",(0,0,0),(1,1,1),256)
-    visualizar_img_colormap(logCB_dct8,"CB_DCT8 Cinzento",(0,0,0),(1,1,1),256)
-    visualizar_img_colormap(logCR_dct8,"CR_DCT8 Cinzento",(0,0,0),(1,1,1),256)
-    
-    
-    #fazer a dct em blocos de 64
-    """y_dct64=dct_em_blocos(y_d,64)
-    cb_dct64=dct_em_blocos(cb_d,64)
-    cr_dct64=dct_em_blocos(cr_d,64)
-    
-    #fazer o logaritmo
-    logY_dct64=np.log(np.abs(y_dct64) + 0.0001)
-    logCB_dct64=np.log(np.abs(cb_dct64) + 0.0001)
-    logCR_dct64=np.log(np.abs(cr_dct64) + 0.0001)
-    
-    #visualizar os canais depois da DCT
-    visualizar_img_colormap(logY_dct64,"Y_DCT64 Cinzento",(0,0,0),(1,1,1),256)
-    visualizar_img_colormap(logCB_dct64,"CB_DCT64 Cinzento",(0,0,0),(1,1,1),256)
-    visualizar_img_colormap(logCR_dct64,"CR_DCT64 Cinzento",(0,0,0),(1,1,1),256)"""
-     
+    if DCT64x64:
+        #fazer a dct em blocos de 64
+        y_dct64=dct_em_blocos(y_d,64)
+        cb_dct64=dct_em_blocos(cb_d,64)
+        cr_dct64=dct_em_blocos(cr_d,64)
+        
+        #fazer o logaritmo
+        logY_dct64=np.log(np.abs(y_dct64) + 0.0001)
+        logCB_dct64=np.log(np.abs(cb_dct64) + 0.0001)
+        logCR_dct64=np.log(np.abs(cr_dct64) + 0.0001)
+        
+        #visualizar os canais depois da DCT
+        visualizar_img_colormap(logY_dct64,"Y_DCT64 Cinzento",(0,0,0),(1,1,1),256)
+        visualizar_img_colormap(logCB_dct64,"CB_DCT64 Cinzento",(0,0,0),(1,1,1),256)
+        visualizar_img_colormap(logCR_dct64,"CR_DCT64 Cinzento",(0,0,0),(1,1,1),256)
+
         
     return  linhas, colunas, y_dct8, cb_dct8, cr_dct8
 
