@@ -396,6 +396,57 @@ def dct_inversa_em_blocos(canal, bloco):
 #------------------------------------------------------------------
 
 
+def codificacao_dpcm(matriz,bloco):
+    linhaLimite=bloco
+    colunaLimite=bloco
+    for i in range(0,matriz.shape[0],bloco):
+        for j in range(0,matriz.shape[1],bloco):
+            #dividir matriz em blocos
+            matriz_bloco=matriz[i:linhaLimite,j:colunaLimite]
+            #transformar a matriz num array
+            vetor_aux=matriz_bloco.flatten()
+            #guardar o primeiro elemento para adicionar depois de fazer a diferenca
+            primeiro_elemento=vetor_aux[0]
+            #fazer a diferenca (anterior - seguinte)
+            vetor_aux=np.diff(vetor_aux)
+            #adicionar o primeiro valor na posicao 0
+            vetor_aux=np.insert(vetor_aux,0,primeiro_elemento)
+            #transformar o array numa matriz bloco x bloco
+            m = np.reshape(vetor_aux,(bloco,bloco))
+            #colocar os valores da diferenca na matriz original
+            matriz[i:linhaLimite,j:colunaLimite]=m
+            
+            colunaLimite+=bloco
+        
+        colunaLimite=bloco
+        linhaLimite+=bloco
+        
+    return matriz
+    
+    
+def inversa_codificacao_dpcm(matriz,bloco):
+    linhaLimite=bloco
+    colunaLimite=bloco
+    for i in range(0,matriz.shape[0],bloco):
+        for j in range(0,matriz.shape[1],bloco):
+            #dividir matriz em blocos
+            matriz_bloco=matriz[i:linhaLimite,j:colunaLimite]
+            #fazer a soma comulativa (vai retornar um vetor)
+            vetor_aux=np.cumsum(matriz_bloco)
+            #transformar o vetor numa matriz de dimensoes bloco x bloco
+            matriz_aux=np.reshape(vetor_aux, (bloco,bloco))
+            #colocar os valores originais na matriz
+            matriz[i:linhaLimite,j:colunaLimite]=matriz_aux
+            
+            colunaLimite+=bloco
+        
+        colunaLimite=bloco
+        linhaLimite+=bloco
+        
+    return matriz
+
+
+
 def encoder(img):
     #variaveis auxiliares para plot
     showColormapRGB = True
