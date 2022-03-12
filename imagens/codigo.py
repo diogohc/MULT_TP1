@@ -393,8 +393,87 @@ def dct_inversa_em_blocos(canal, bloco):
         linhaLimite+=bloco
         
     return canal
+
+ #------------------------------------------------------------------
+ 
+def quantizacao_em_blocos(canal, Y=True):
+
+    linhaLimite=8
+    colunaLimite=8
+    for i in range(0,canal.shape[0],8):
+        for j in range(0,canal.shape[1],8):
+            if Y:
+                canal[i:linhaLimite,j:colunaLimite]=np.divide(canal[i:linhaLimite,j:colunaLimite], mQuantY).round()
+                
+            else:
+                canal[i:linhaLimite,j:colunaLimite]=np.divide(canal[i:linhaLimite,j:colunaLimite], mQuantCbCr).round()
+            colunaLimite+=8
+        
+        colunaLimite=8
+        linhaLimite+=8
+        
+    return canal
+
+def quantizacao_inversa_em_blocos(canal, Y=True):
+    linhaLimite=8
+    colunaLimite=8
+    for i in range(0,canal.shape[0],8):
+        for j in range(0,canal.shape[1],8):
+            if Y:
+                canal[i:linhaLimite,j:colunaLimite]=np.multiply(canal[i:linhaLimite,j:colunaLimite], mQuantY)
+            else:
+                canal[i:linhaLimite,j:colunaLimite]=np.multiply(canal[i:linhaLimite,j:colunaLimite], mQuantCbCr)
+            
+            colunaLimite+=8
+        
+        colunaLimite=8
+        linhaLimite+=8
+        
+    return canal
+  
 #------------------------------------------------------------------
 
+def quantizacao_Qualidade(qf, canal, Y=True):
+    
+    if qf >= 50:
+        sf = (100 - qf)/50
+    elif qf < 50:
+        sf = 50/qf
+    
+    if sf != 0:
+        qsY = np.multiply(mQuantY, sf)
+        qsY[qsY<0]=0
+        qsY[qsY>255]=255
+        qsY=qsY.astype('uint8')
+        
+        qsCbCr = np.multiply(mQuantCbCr, sf)
+        qsCbCr[qsCbCr<0]=0
+        qsCbCr[qsCbCr>255]=255
+        qsCbCr=qsCbCr.astype('uint8')
+        
+    elif sf==0:
+        qsY = np.ones((8,8))
+        qsCbCr = np.ones((8,8))
+
+    linhaLimite=8
+    colunaLimite=8
+    for i in range(0,canal.shape[0],8):
+        for j in range(0,canal.shape[1],8):
+            if Y:
+                canal[i:linhaLimite,j:colunaLimite]=np.divide(canal[i:linhaLimite,j:colunaLimite], qsY).round()
+                
+            else:
+                canal[i:linhaLimite,j:colunaLimite]=np.divide(canal[i:linhaLimite,j:colunaLimite], qsCbCr).round()
+            colunaLimite+=8
+        
+        colunaLimite=8
+        linhaLimite+=8
+    
+    plt.imshow(canal)
+    plt.title(qf)
+    plt.axis('off')
+    
+#------------------------------------------------------------------
 
 def codificacao_dpcm(matriz,bloco):
     linhaLimite=bloco
@@ -545,12 +624,24 @@ def encoder(img):
         visualizar_img_colormap(logY_dct64,"Y_DCT64 Cinzento",(0,0,0),(1,1,1),256)
         visualizar_img_colormap(logCB_dct64,"CB_DCT64 Cinzento",(0,0,0),(1,1,1),256)
         visualizar_img_colormap(logCR_dct64,"CR_DCT64 Cinzento",(0,0,0),(1,1,1),256)
+    
+    # faz a quantizaçao para os blocos da DCT
+    y_quant=quantizacao_em_blocos(y_dct8, True)
+    cb_quant=quantizacao_em_blocos(cb_dct8, False)
+    cr_quant=quantizacao_em_blocos(cr_dct8, False)
+    
+    #quantizacao_Qualidade(50 , y_dct8, Y=True)
+    
+    return  linhas, colunas, y_quant, cb_quant, cr_quant
 
-        
-    return  linhas, colunas, y_dct8, cb_dct8, cr_dct8
 
-
-def decoder(nr_linhas, nr_colunas, y_dct, cb_dct, cr_dct):
+def decoder(nr_linhas, nr_colunas, y_quant, cb_quant, cr_quant):
+  
+    #inverso da quantizaçao dos blocos de 8 da dct 
+    y_dct=quantizacao_inversa_em_blocos(y_quant, True)
+    cb_dct=quantizacao_inversa_em_blocos(cb_quant, False)
+    cr_dct=quantizacao_inversa_em_blocos(cr_quant, False)
+    
     #fazer inverso da dct em blocos de 8
     y_d=dct_inversa_em_blocos(y_dct, 8)
     cb_d=dct_inversa_em_blocos(cb_dct, 8)
