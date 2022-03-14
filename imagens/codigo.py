@@ -421,7 +421,137 @@ def dct_inversa_em_blocos(canal, bloco):
         linhaLimite+=bloco
         
     return canal
+
+ #------------------------------------------------------------------
+ 
+def quantizacao_em_blocos(canal, Y=True):
+
+    linhaLimite=8
+    colunaLimite=8
+    for i in range(0,canal.shape[0],8):
+        for j in range(0,canal.shape[1],8):
+            if Y:
+                canal[i:linhaLimite,j:colunaLimite]=np.divide(canal[i:linhaLimite,j:colunaLimite], mQuantY).round()
+                
+            else:
+                canal[i:linhaLimite,j:colunaLimite]=np.divide(canal[i:linhaLimite,j:colunaLimite], mQuantCbCr).round()
+            colunaLimite+=8
+        
+        colunaLimite=8
+        linhaLimite+=8
+        
+    return canal
+
+def quantizacao_inversa_em_blocos(canal, Y=True):
+    linhaLimite=8
+    colunaLimite=8
+    for i in range(0,canal.shape[0],8):
+        for j in range(0,canal.shape[1],8):
+            if Y:
+                canal[i:linhaLimite,j:colunaLimite]=np.multiply(canal[i:linhaLimite,j:colunaLimite], mQuantY)
+            else:
+                canal[i:linhaLimite,j:colunaLimite]=np.multiply(canal[i:linhaLimite,j:colunaLimite], mQuantCbCr)
+            
+            colunaLimite+=8
+        
+        colunaLimite=8
+        linhaLimite+=8
+        
+    return canal
+  
 #------------------------------------------------------------------
+
+def quantizacao_Qualidade(qf, canal, Y=True):
+    
+    if qf >= 50:
+        sf = (100 - qf)/50
+    elif qf < 50:
+        sf = 50/qf
+    
+    if sf != 0:
+        qsY = np.multiply(mQuantY, sf)
+        qsY[qsY<0]=0
+        qsY[qsY>255]=255
+        qsY=qsY.astype('uint8')
+        
+        qsCbCr = np.multiply(mQuantCbCr, sf)
+        qsCbCr[qsCbCr<0]=0
+        qsCbCr[qsCbCr>255]=255
+        qsCbCr=qsCbCr.astype('uint8')
+        
+    elif sf==0:
+        qsY = np.ones((8,8))
+        qsCbCr = np.ones((8,8))
+
+    linhaLimite=8
+    colunaLimite=8
+    for i in range(0,canal.shape[0],8):
+        for j in range(0,canal.shape[1],8):
+            if Y:
+                canal[i:linhaLimite,j:colunaLimite]=np.divide(canal[i:linhaLimite,j:colunaLimite], qsY).round()
+                
+            else:
+                canal[i:linhaLimite,j:colunaLimite]=np.divide(canal[i:linhaLimite,j:colunaLimite], qsCbCr).round()
+            colunaLimite+=8
+        
+        colunaLimite=8
+        linhaLimite+=8
+    
+    plt.imshow(canal)
+    plt.title(qf)
+    plt.axis('off')
+    
+#------------------------------------------------------------------
+
+def codificacao_dpcm(matriz,bloco):
+    linhaLimite=bloco
+    colunaLimite=bloco
+    for i in range(0,matriz.shape[0],bloco):
+        for j in range(0,matriz.shape[1],bloco):
+            #dividir matriz em blocos
+            matriz_bloco=matriz[i:linhaLimite,j:colunaLimite]
+            #transformar a matriz num array
+            vetor_aux=matriz_bloco.flatten()
+            #guardar o primeiro elemento para adicionar depois de fazer a diferenca
+            primeiro_elemento=vetor_aux[0]
+            #fazer a diferenca (anterior - seguinte)
+            vetor_aux=np.diff(vetor_aux)
+            #adicionar o primeiro valor na posicao 0
+            vetor_aux=np.insert(vetor_aux,0,primeiro_elemento)
+            #transformar o array numa matriz bloco x bloco
+            m = np.reshape(vetor_aux,(bloco,bloco))
+            #colocar os valores da diferenca na matriz original
+            matriz[i:linhaLimite,j:colunaLimite]=m
+            
+            colunaLimite+=bloco
+        
+        colunaLimite=bloco
+        linhaLimite+=bloco
+        
+    return matriz
+    
+    
+def inversa_codificacao_dpcm(matriz,bloco):
+    linhaLimite=bloco
+    colunaLimite=bloco
+    for i in range(0,matriz.shape[0],bloco):
+        for j in range(0,matriz.shape[1],bloco):
+            #dividir matriz em blocos
+            matriz_bloco=matriz[i:linhaLimite,j:colunaLimite]
+            #fazer a soma comulativa (vai retornar um vetor)
+            vetor_aux=np.cumsum(matriz_bloco)
+            #transformar o vetor numa matriz de dimensoes bloco x bloco
+            matriz_aux=np.reshape(vetor_aux, (bloco,bloco))
+            #colocar os valores originais na matriz
+            matriz[i:linhaLimite,j:colunaLimite]=matriz_aux
+            
+            colunaLimite+=bloco
+        
+        colunaLimite=bloco
+        linhaLimite+=bloco
+        
+    return matriz
+
 
 
 def quantizacao_Qualidade(qf, canal, Y=True):
