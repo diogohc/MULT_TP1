@@ -11,6 +11,34 @@ matriz = np.array([[0.299, 0.587, 0.114],
               [-0.168736, -0.331264, 0.5],
               [0.5, -0.418688, -0.081312]])
 
+#matriz de quantizaçao para o canal Y 
+mQuantY = np.array([[16, 11, 10, 16, 24, 40, 51, 61],
+                    [12, 12, 14, 19, 26, 58, 60, 55],
+                    [14, 13, 16, 24, 40, 57, 69, 56],
+                    [14, 17, 22, 29, 51, 87, 80, 62],
+                    [18, 22, 37, 56, 68, 109, 103, 77],
+                    [24, 35, 55, 64, 81, 104, 113, 92],
+                    [49, 64, 78, 87, 103, 121, 120, 101],
+                    [72, 92, 95, 98, 112, 100, 103, 99]])
+
+#matriz de quantizaçao para os canais CbCr 
+mQuantCbCr = np.array([[17, 18, 24, 47, 99, 99, 99, 99],
+                    [18, 21, 26, 66, 99, 99, 99, 99],
+                    [24, 26, 56, 99, 99, 99, 99, 99],
+                    [47, 66, 99, 99, 99, 99, 99, 99],
+                    [99, 99, 99, 99, 99, 99, 99, 99],
+                    [99, 99, 99, 99, 99, 99, 99, 99],
+                    [99, 99, 99, 99, 99, 99, 99, 99],
+                    [99, 99, 99, 99, 99, 99, 99, 99]])
+
+#variaveis auxiliares para plot
+showColormapRGB = True
+showColormapYCbCr = True
+showDownsampling = True
+DCTimage = False
+DCT8x8 = True
+DCT64x64 = False
+
 """
 Esta funçao recebe uma imagem faz o seu plot e retorna o arry com a informaçao 
 parametros :
@@ -396,14 +424,122 @@ def dct_inversa_em_blocos(canal, bloco):
 #------------------------------------------------------------------
 
 
+def quantizacao_Qualidade(qf, canal, Y=True):
+    
+    if qf >= 50:
+        sf = (100 - qf)/50
+    elif qf < 50:
+        sf = 50/qf
+    
+    if sf != 0:
+        qsY = np.multiply(mQuantY, sf).round()
+        qsY[qsY<0]=0
+        qsY[qsY>255]=255
+        qsY=qsY.astype('uint8')
+        
+        qsCbCr = np.multiply(mQuantCbCr, sf).round()
+        qsCbCr[qsCbCr<0]=0
+        qsCbCr[qsCbCr>255]=255
+        qsCbCr=qsCbCr.astype('uint8')
+        
+    elif sf==0:
+        qsY = np.ones((8,8))
+        qsCbCr = np.ones((8,8))
+
+    linhaLimite=8
+    colunaLimite=8
+    for i in range(0,canal.shape[0],8):
+        for j in range(0,canal.shape[1],8):
+            if Y:
+                canal[i:linhaLimite,j:colunaLimite]=np.divide(canal[i:linhaLimite,j:colunaLimite], qsY).round()
+                
+            else:
+                canal[i:linhaLimite,j:colunaLimite]=np.divide(canal[i:linhaLimite,j:colunaLimite], qsCbCr).round()
+            colunaLimite+=8
+        
+        colunaLimite=8
+        linhaLimite+=8
+    
+    plt.imshow(canal)
+    plt.title(qf)
+    plt.axis('off')
+    
+    return canal, qsY, qsCbCr
+
+
+def inversa_quantizacao_Qualidade(canal, qsY, qsCbCr, Y=True):
+    linhaLimite=8
+    colunaLimite=8
+    for i in range(0,canal.shape[0],8):
+        for j in range(0,canal.shape[1],8):
+            if Y:
+                canal[i:linhaLimite,j:colunaLimite]=np.multiply(canal[i:linhaLimite,j:colunaLimite], qsY).round()
+                
+            else:
+                canal[i:linhaLimite,j:colunaLimite]=np.multiply(canal[i:linhaLimite,j:colunaLimite], qsCbCr).round()
+            colunaLimite+=8
+        
+        colunaLimite=8
+        linhaLimite+=8
+    
+    plt.imshow(canal)
+    plt.axis('off')
+    return canal
+
+
+#------------------------------------------------------------------
+
+def codificacao_dpcm(matriz,bloco):
+    linhaLimite=bloco
+    colunaLimite=bloco
+    for i in range(0,matriz.shape[0],bloco):
+        for j in range(0,matriz.shape[1],bloco):
+            #dividir matriz em blocos
+            matriz_bloco=matriz[i:linhaLimite,j:colunaLimite]
+            #transformar a matriz num array
+            vetor_aux=matriz_bloco.flatten()
+            #guardar o primeiro elemento para adicionar depois de fazer a diferenca
+            primeiro_elemento=vetor_aux[0]
+            #fazer a diferenca (anterior - seguinte)
+            vetor_aux=np.diff(vetor_aux)
+            #adicionar o primeiro valor na posicao 0
+            vetor_aux=np.insert(vetor_aux,0,primeiro_elemento)
+            #transformar o array numa matriz bloco x bloco
+            m = np.reshape(vetor_aux,(bloco,bloco))
+            #colocar os valores da diferenca na matriz original
+            matriz[i:linhaLimite,j:colunaLimite]=m
+            
+            colunaLimite+=bloco
+        
+        colunaLimite=bloco
+        linhaLimite+=bloco
+        
+    return matriz
+    
+    
+def inversa_codificacao_dpcm(matriz,bloco):
+    linhaLimite=bloco
+    colunaLimite=bloco
+    for i in range(0,matriz.shape[0],bloco):
+        for j in range(0,matriz.shape[1],bloco):
+            #dividir matriz em blocos
+            matriz_bloco=matriz[i:linhaLimite,j:colunaLimite]
+            #fazer a soma comulativa (vai retornar um vetor)
+            vetor_aux=np.cumsum(matriz_bloco)
+            #transformar o vetor numa matriz de dimensoes bloco x bloco
+            matriz_aux=np.reshape(vetor_aux, (bloco,bloco))
+            #colocar os valores originais na matriz
+            matriz[i:linhaLimite,j:colunaLimite]=matriz_aux
+            
+            colunaLimite+=bloco
+        
+        colunaLimite=bloco
+        linhaLimite+=bloco
+        
+    return matriz
+
+
 def encoder(img):
-    #variaveis auxiliares para plot
-    showColormapRGB = True
-    showColormapYCbCr = True
-    showDownsampling = True
-    DCTimage = False
-    DCT8x8 = True
-    DCT64x64 = False
 
     img = ler_imagem(img)
     linhas=img.shape[0]
@@ -495,11 +631,26 @@ def encoder(img):
         visualizar_img_colormap(logCB_dct64,"CB_DCT64 Cinzento",(0,0,0),(1,1,1),256)
         visualizar_img_colormap(logCR_dct64,"CR_DCT64 Cinzento",(0,0,0),(1,1,1),256)
 
-        
-    return  linhas, colunas, y_dct8, cb_dct8, cr_dct8
+    y_quant, qsY, qsCbCr =quantizacao_Qualidade(75, y_dct8, Y=True)
+    cb_quant, qsY, qsCbCr =quantizacao_Qualidade(75 , cb_dct8, Y=False)
+    cr_quant, qsY, qsCbCr =quantizacao_Qualidade(75 , cr_dct8, Y=False)
+
+    #decodificaçao DCPM
+    matrizY = codificacao_dpcm(y_quant, 8)
+    #print (matrizY[:,8])
+    matrizCb = codificacao_dpcm(cb_quant, 8)
+    #print (matrizCb[:,8])
+    matrizCr = codificacao_dpcm(cr_quant, 8)
+    #print (matrizCr[:,8])
+    return  linhas, colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr
 
 
-def decoder(nr_linhas, nr_colunas, y_dct, cb_dct, cr_dct):
+def decoder(nr_linhas, nr_colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr):
+    # inverso da codificaçao DPCM
+    y_quant = inversa_codificacao_dpcm(matrizY, 8)
+    cb_quant = inversa_codificacao_dpcm(matrizCb, 8)
+    cr_quant = inversa_codificacao_dpcm(matrizCr, 8)
+    
     #fazer inverso da dct em blocos de 8
     y_d=dct_inversa_em_blocos(y_dct, 8)
     cb_d=dct_inversa_em_blocos(cb_dct, 8)
@@ -520,8 +671,6 @@ def decoder(nr_linhas, nr_colunas, y_dct, cb_dct, cr_dct):
     
     
     return img_original
-
-
 
 
 
