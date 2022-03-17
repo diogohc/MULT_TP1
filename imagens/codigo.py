@@ -653,9 +653,9 @@ def decoder(nr_linhas, nr_colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr):
     
     
     #inverso da quantizacao
-    y_dct = inversa_quantizacao_Qualidade(y_quant, mQuantY,mQuantCbCr)
-    cb_dct = inversa_quantizacao_Qualidade(cb_quant, mQuantY,mQuantCbCr, False)
-    cr_dct = inversa_quantizacao_Qualidade(cr_quant, mQuantY,mQuantCbCr, False)
+    y_dct = inversa_quantizacao_Qualidade(y_quant, qsY,qsCbCr)
+    cb_dct = inversa_quantizacao_Qualidade(cb_quant, qsY,qsCbCr, False)
+    cr_dct = inversa_quantizacao_Qualidade(cr_quant, qsY,qsCbCr, False)
     
     #fazer inverso da dct em blocos de 8
     y_d=dct_inversa_em_blocos(y_dct, 8)
