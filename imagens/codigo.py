@@ -651,6 +651,12 @@ def decoder(nr_linhas, nr_colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr):
     cb_quant = inversa_codificacao_dpcm(matrizCb, 8)
     cr_quant = inversa_codificacao_dpcm(matrizCr, 8)
     
+    
+    #inverso da quantizacao
+    y_dct = inversa_quantizacao_Qualidade(y_quant, mQuantY,mQuantCbCr)
+    cb_dct = inversa_quantizacao_Qualidade(cb_quant, mQuantY,mQuantCbCr, False)
+    cr_dct = inversa_quantizacao_Qualidade(cr_quant, mQuantY,mQuantCbCr, False)
+    
     #fazer inverso da dct em blocos de 8
     y_d=dct_inversa_em_blocos(y_dct, 8)
     cb_d=dct_inversa_em_blocos(cb_dct, 8)
@@ -677,10 +683,10 @@ def decoder(nr_linhas, nr_colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr):
 
 def main():
     #codificar
-    linhas, colunas, y_d, cb_d, cr_d = encoder('barn_mountains.bmp')
+    linhas, colunas, y_d, cb_d, cr_d, qsy, qscbcr = encoder('barn_mountains.bmp')
     
     #descodificar
-    img_original=decoder(linhas, colunas, y_d, cb_d, cr_d)
+    img_original=decoder(linhas, colunas, y_d, cb_d, cr_d, qsy, qscbcr)
     
     #mostrar imagem original
     plt.figure()
