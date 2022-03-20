@@ -35,9 +35,9 @@ mQuantCbCr = np.array([[17, 18, 24, 47, 99, 99, 99, 99],
 showColormapRGB = True
 showColormapYCbCr = True
 showDownsampling = True
-showDCTimage = False
-showDCT8x8 = True
-showDCT64x64 = False
+DCTimage = False
+DCT8x8 = True
+DCT64x64 = False
 
 """
 Esta funçao recebe uma imagem faz o seu plot e retorna o arry com a informaçao 
@@ -234,7 +234,6 @@ Esta funçao remove informaçao dos canais menos sensiveis ao olho humano (cb e 
 para os dois casos testes alvo de estudo ( 4:2:2 e 4:2:0 )
 parametros :
     img --> informaçao da imagem
-    caso --> informa qual o caso de teste vamos usar ( 4:2:2 e 4:2:0 )
 return :
     y --> informaçao do canal Y
     cb --> informaçao do canal Cb
@@ -424,19 +423,7 @@ def dct_inversa_em_blocos(canal, bloco):
     return canal
 
  #------------------------------------------------------------------
-"""
-Esta funçao faz a quantizaçao como o fator de qualidade para as DCT's de cada
-canal, recorrendo as matrizes de quantizaçao mQuantY para o canal Y
-e mQuantCbCr para os canais Cb e Cr
-parametros :
-    qf --> indica o fator de qualidade a usar
-    canal --> indica o canal ao qual se vai aplicar a quantizaçao 
-    Y --> indica se o canal a quantizar é o Y (True) ou o Cb/Cr (False)
-return :
-    canal --> informaçao do canal depois da quantizaçao em todos os seus blocos 
-    qsY --> informaçao da martriz de quantizaçao com o fator de qualidade aplicado para o canal Y
-    qsCbCr --> informaçao da martriz de quantizaçao com o fator de qualidade aplicado para os canais Cb Cr
-"""
+
 def quantizacao_Qualidade(qf, canal, Y=True):
     
     if qf >= 50:
@@ -479,17 +466,7 @@ def quantizacao_Qualidade(qf, canal, Y=True):
     
     return canal, qsY, qsCbCr
 
-"""
-Esta funçao faz o inverso da quantizaçao como o fator de qualidade para as DCT's de cada
-canal, recorrendo as matrizes de quantizaçao com o fator qualidade obtidas na quantizaçao
-parametros :
-    canal --> indica o canal ao qual se vai aplicar o inverso da quantizaçao 
-    qsY --> indica a matriz de quantizaçao com o fator qualidade para o canal Y
-    qsCbCr --> indica a matriz de quantizaçao com o fator qualidade para os canais Cb Cr
-    Y --> indica se o canal a quantizar é o Y (True) ou o Cb/Cr (False)
-return :
-    canal --> informaçao do canal depois de aplicar o inverso da quantizaçao em todos os seus blocos 
-"""
+
 def inversa_quantizacao_Qualidade(canal, qsY, qsCbCr, Y=True):
     linhaLimite=8
     colunaLimite=8
@@ -562,16 +539,16 @@ def inversa_codificacao_dpcm(matriz,bloco):
     return matriz
 
 
-def encoder(img, qf):
+def encoder(img):
 
-    img_original = ler_imagem(img)
-    linhas=img_original.shape[0]
-    colunas=img_original.shape[1]
+    img = ler_imagem(img)
+    linhas=img.shape[0]
+    colunas=img.shape[1]
 
     #visualizar_img_colormap(img,"Teste",(0,0,0),(0,1,0),256)
     
     #Separar a imagem em canais R,G,B
-    r,g,b=separar_canais(img_original)
+    r,g,b=separar_canais(img)
 
     
     #visualizar os 3 canais com os colormaps adequados
@@ -581,7 +558,7 @@ def encoder(img, qf):
         visualizar_img_colormap(r,"Azul",(0,0,0),(0,0,1),256)
     
     #fazer padding da imagem
-    img=padding(img_original)
+    img=padding(img)
     
     #transformar imagem para o modelo YCbCr
     img_transf=rgb_ycbcr(img)
@@ -609,7 +586,7 @@ def encoder(img, qf):
         
     print("ANTES - Y_d[0][0]",y_d[0][0])
     #fazer a DCT
-    if showDCTimage:
+    if DCTimage:
         y_dct, cb_dct, cr_dct=dct(y_d, cb_d, cr_d)
         
         logY_dct=np.log(np.abs(y_dct) + 0.0001)
@@ -627,7 +604,7 @@ def encoder(img, qf):
     cb_dct8=dct_em_blocos(cb_d,8)
     cr_dct8=dct_em_blocos(cr_d,8)
     
-    if showDCT8x8:
+    if DCT8x8:
     #fazer o logaritmo
         logY_dct8=np.log(np.abs(y_dct8) + 0.0001)
         logCB_dct8=np.log(np.abs(cb_dct8) + 0.0001)
@@ -638,7 +615,7 @@ def encoder(img, qf):
         visualizar_img_colormap(logCB_dct8,"CB_DCT8 Cinzento",(0,0,0),(1,1,1),256)
         visualizar_img_colormap(logCR_dct8,"CR_DCT8 Cinzento",(0,0,0),(1,1,1),256)
     
-    if showDCT64x64:
+    if DCT64x64:
         #fazer a dct em blocos de 64
         y_dct64=dct_em_blocos(y_d,64)
         cb_dct64=dct_em_blocos(cb_d,64)
@@ -654,9 +631,9 @@ def encoder(img, qf):
         visualizar_img_colormap(logCB_dct64,"CB_DCT64 Cinzento",(0,0,0),(1,1,1),256)
         visualizar_img_colormap(logCR_dct64,"CR_DCT64 Cinzento",(0,0,0),(1,1,1),256)
 
-    y_quant, qsY, qsCbCr =quantizacao_Qualidade(qf, y_dct8, Y=True)
-    cb_quant, qsY, qsCbCr =quantizacao_Qualidade(qf, cb_dct8, Y=False)
-    cr_quant, qsY, qsCbCr =quantizacao_Qualidade(qf, cr_dct8, Y=False)
+    y_quant, qsY, qsCbCr =quantizacao_Qualidade(75, y_dct8, Y=True)
+    cb_quant, qsY, qsCbCr =quantizacao_Qualidade(75 , cb_dct8, Y=False)
+    cr_quant, qsY, qsCbCr =quantizacao_Qualidade(75 , cr_dct8, Y=False)
 
     #decodificaçao DCPM
     matrizY = codificacao_dpcm(y_quant, 8)
@@ -665,10 +642,12 @@ def encoder(img, qf):
     #print (matrizCb[:,8])
     matrizCr = codificacao_dpcm(cr_quant, 8)
     #print (matrizCr[:,8])
-    return  linhas, colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr, img_original
+    return  linhas, colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr, img_transf[0], img_transf[1], img_transf[2]
 
 
-def decoder(nr_linhas, nr_colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr, original):
+
+#retorna a imagem reconstruida, o canal Y, o canal CB e o canal CR
+def decoder(nr_linhas, nr_colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr):
     # inverso da codificaçao DPCM
     y_quant = inversa_codificacao_dpcm(matrizY, 8)
     cb_quant = inversa_codificacao_dpcm(matrizCb, 8)
@@ -693,56 +672,107 @@ def decoder(nr_linhas, nr_colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr, ori
     
     
     #transformar para o modelo rgb
-    img_original=ycbcr_rgb(img)
+    img_reconstruida=ycbcr_rgb(img)
     
     #reverter o padding
-    img_original=reverse_padding(img_original, nr_linhas, nr_colunas)
+    img_reconstruida=reverse_padding(img_reconstruida, nr_linhas, nr_colunas)
     
     
-    return img_original
+    return img_reconstruida, img[0], img[1], img[2]
 
 
-def MSE(original, comprimida):
-    original, comprimida = np.array(original), np.array(comprimida)
-    return np.square(np.subtract(original, comprimida)).mean() 
 
-def RMSE(mse):
-    rmse = math.sqrt(mse)
-    return rmse
+def calculoMSE(canalOriginal, canalReconstruido):
+    matrizErro = canalOriginal - canalReconstruido
+    matrizErro = abs(matrizErro)
+    print(matrizErro)
+    print(matrizErro.shape)
+    matrizErro = matrizErro**2
+    somatorio_valores_matriz = np.sum(matrizErro)
+    erro = somatorio_valores_matriz / (canalOriginal.shape[0]*canalOriginal.shape[1])
+    
+    return erro
 
-def SNR(mse, original):
-    p = np.square(original).mean()
-    snr = 10 * math.log10(p / mse)
+
+def calculoP(canal):
+    p = np.sum(canal)
+    p = p**2
+    p = p / (canal.shape[0] * canal.shape[1])
+    return p
+
+
+def calculoSNR(canal, mse):
+    p = calculoP(canal)
+    snr = 10*math.log10(p/mse)
     return snr
 
-def PSNR(mse):
-    max_pixel = 255.0
-    psnr = 10 * math.log10(max_pixel**2 / (mse))
+
+
+def calculoPSNR(canal, mse):
+    aux = canal.max()**2
+    psnr = 10*math.log10(aux/mse)
+    
     return psnr
+    
 
 
 def main():
+    nome_ficheiro = 'barn_mountains.bmp'
     #codificar
-    linhas, colunas, y_d, cb_d, cr_d, qsy, qscbcr, img_original = encoder('barn_mountains.bmp', 75)
+    linhas, colunas, y_d, cb_d, cr_d, qsy, qscbcr, y_O, cb_O, cr_O = encoder(nome_ficheiro)
     
     #descodificar
-    img_reconstruida=decoder(linhas, colunas, y_d, cb_d, cr_d, qsy, qscbcr, img_original)
+    img_reconstruida, y_R, cb_R, cr_R = decoder(linhas, colunas, y_d, cb_d, cr_d, qsy, qscbcr)
     
-    #mostrar imagem recosntruida
+    #mostrar imagem original
     plt.figure()
     plt.imshow(img_reconstruida)
     plt.axis('off')
     plt.title('Imagem Recontruida')
-
-    mse = MSE(img_original, img_reconstruida)
-    rmse = RMSE(mse)
-    snr = SNR(mse, img_original)
-    psnr = PSNR(mse)
     
-    print("MSE  ", mse)
-    print("RMSE  ", rmse)
-    print("SNR  ", snr)
-    print("PSNR  ", psnr)
+    
+
+    
+    #calculo do MSE
+    MSE_Y = calculoMSE(y_O, y_R)
+    MSE_CB = calculoMSE(cb_O, cb_R)
+    MSE_CR = calculoMSE(cr_O, cr_R)
+    print("")
+    print("MSE Y:", MSE_Y)
+    print("MSE CB:", MSE_CB)
+    print("MSE CR:", MSE_CR)
+    
+    #calculo do RMSE
+    RMSE_Y = math.sqrt(MSE_Y)
+    RMSE_CB = math.sqrt(MSE_CB)
+    RMSE_CR = math.sqrt(MSE_CR)
+    print("")
+    print("RMSE_Y:", RMSE_Y)
+    print("RMSE_CB:", RMSE_CB)
+    print("RMSE_CR:", RMSE_CR)
+    
+    #calculo do SNR
+    SNR_Y = calculoSNR(y_O, MSE_Y)
+    SNR_CB = calculoSNR(cb_O, MSE_CB)
+    SNR_CR = calculoSNR(cr_O, MSE_CR)
+    print("")
+    print("SNR Y:", SNR_Y)
+    print("SNR CB:", SNR_CB)
+    print("SNR CR:", SNR_CR)
+    
+    
+    #calculo do PSNR
+    PSNR_Y = calculoPSNR(y_O, MSE_Y)
+    PSNR_CB = calculoPSNR(cb_O, MSE_CB)
+    PSNR_CR = calculoPSNR(cr_O, MSE_CR)
+    print("")
+    print("PSNR Y: ", PSNR_Y)
+    print("PSNR CB: ", PSNR_CB)
+    print("PSNR CR: ", PSNR_CR)
+
+    
+    
+    
     
            
 
