@@ -460,10 +460,10 @@ def quantizacao_Qualidade(qf, canal, Y=True):
         colunaLimite=8
         linhaLimite+=8
     
-    plt.imshow(canal)
-    plt.title(qf)
-    plt.axis('off')
-    
+    #plt.imshow(canal)
+    #plt.title(qf)
+    #plt.axis('off')
+    visualizar_img_colormap(canal, "Quantizacao"+str(qf), (0,0,0), (1,1,1), 256)
     return canal, qsY, qsCbCr
 
 
@@ -482,8 +482,8 @@ def inversa_quantizacao_Qualidade(canal, qsY, qsCbCr, Y=True):
         colunaLimite=8
         linhaLimite+=8
     
-    plt.imshow(canal)
-    plt.axis('off')
+    #plt.imshow(canal)
+    #plt.axis('off')
     return canal
 
 
@@ -637,12 +637,18 @@ def encoder(img):
 
     #decodificaçao DCPM
     matrizY = codificacao_dpcm(y_quant, 8)
+    logY_matrizY=np.log(np.abs(matrizY) + 0.0001)
+    visualizar_img_colormap(logY_matrizY, "Y_Q_DPCM", (0,0,0), (1,1,1), 256)
     #print (matrizY[:,8])
     matrizCb = codificacao_dpcm(cb_quant, 8)
+    logY_matrizCb=np.log(np.abs(matrizCb) + 0.0001)
+    visualizar_img_colormap(logY_matrizCb, "CB_Q_DPCM", (0,0,0), (1,1,1), 256)
     #print (matrizCb[:,8])
     matrizCr = codificacao_dpcm(cr_quant, 8)
+    logY_matrizCr=np.log(np.abs(matrizCr) + 0.0001)
+    visualizar_img_colormap(logY_matrizCr, "CR_Q_DPCM", (0,0,0), (1,1,1), 256)
     #print (matrizCr[:,8])
-    return  linhas, colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr, img_transf[0], img_transf[1], img_transf[2]
+    return  linhas, colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr, img_transf[:,:,0], img_transf[:,:,1], img_transf[:,:,2]
 
 
 
@@ -678,15 +684,17 @@ def decoder(nr_linhas, nr_colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr):
     img_reconstruida=reverse_padding(img_reconstruida, nr_linhas, nr_colunas)
     
     
-    return img_reconstruida, img[0], img[1], img[2]
+    return img_reconstruida, img[:,:,0], img[:,:,1], img[:,:,2]
 
 
 
 def calculoMSE(canalOriginal, canalReconstruido):
+    print(canalOriginal.shape)
+    print(canalReconstruido.shape)
     matrizErro = canalOriginal - canalReconstruido
     matrizErro = abs(matrizErro)
-    print(matrizErro)
-    print(matrizErro.shape)
+    #print(matrizErro)
+    #print(matrizErro.shape)
     matrizErro = matrizErro**2
     somatorio_valores_matriz = np.sum(matrizErro)
     erro = somatorio_valores_matriz / (canalOriginal.shape[0]*canalOriginal.shape[1])
@@ -773,8 +781,6 @@ def main():
     
     
     
-    
-           
 
 
 
