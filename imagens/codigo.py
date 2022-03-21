@@ -508,6 +508,41 @@ def inversa_quantizacao_Qualidade(canal, qsY, qsCbCr, Y=True):
 
 #------------------------------------------------------------------
 
+def codificacao_dpcmTESTE(matriz,bloco):
+    linhaLimite=8
+    colunaLimite=8
+    DPCM = []
+    for i in range(0,matriz.shape[0],8):
+        DPCM.append([])
+        for j in range(0,matriz.shape[1],8):
+            if colunaLimite != 8:
+                colunaLimiteAnt = colunaLimite
+            aux = matriz[i:linhaLimite,j:colunaLimite]
+            indice = aux[0][0]
+            
+            
+            if i == 0 and j == 0:
+                DPCM[i//8].append(indice)
+            elif i > 0 and j == 0:
+                auxAnt = matriz[i-8:linhaLimite-8,colunaLimiteAnt-8:colunaLimiteAnt]
+                indiceAnt = auxAnt[0][0]
+                
+                DPCM[i//8].append(indiceAnt - indice)
+            else:
+                auxAnt = matriz[i:linhaLimite,j-8:colunaLimite-8]
+                indiceAnt = auxAnt[0][0]
+                
+                DPCM[i//8].append(indiceAnt - indice)
+
+            colunaLimite+=8
+        
+        colunaLimite=8
+        linhaLimite+=8
+        
+    print(DPCM)
+        
+    return matriz
+
 def codificacao_dpcm(matriz,bloco):
     linhaLimite=bloco
     colunaLimite=bloco*2
@@ -657,7 +692,10 @@ def encoder(img, qf):
     cr_quant, qsY, qsCbCr =quantizacao_Qualidade(qf, cr_dct8, Y=False)
     print(y_quant[8:16,8:16])
     #decodificaçao DCPM
-    matrizY = codificacao_dpcm(y_quant, 8)
+    matrizY = codificacao_dpcmTESTE(y_quant, 8)
+    matrizCb = codificacao_dpcmTESTE(cb_quant, 8)
+    matrizCr = codificacao_dpcmTESTE(cr_quant, 8)
+    """matrizY = codificacao_dpcm(y_quant, 8)
     logY_matrizY=np.log(np.abs(matrizY) + 0.0001)
     visualizar_img_colormap(logY_matrizY, "Y_Q_DPCM", (0,0,0), (1,1,1), 256)
     #print (matrizY[:,8])
@@ -669,7 +707,7 @@ def encoder(img, qf):
     logY_matrizCr=np.log(np.abs(matrizCr) + 0.0001)
     visualizar_img_colormap(logY_matrizCr, "CR_Q_DPCM", (0,0,0), (1,1,1), 256)
     #print (matrizCr[:,8])
-    print(matrizY[8:16,8:16])
+    print(matrizY[8:16,8:16])"""
     return  linhas, colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr, img_original
 
 
