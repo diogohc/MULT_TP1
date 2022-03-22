@@ -508,82 +508,58 @@ def inversa_quantizacao_Qualidade(canal, qsY, qsCbCr, Y=True):
 
 #------------------------------------------------------------------
 
-def codificacao_dpcmTESTE(matriz,bloco):
-    linhaLimite=8
-    colunaLimite=8
-    DPCM = []
-    for i in range(0,matriz.shape[0],8):
-        DPCM.append([])
-        for j in range(0,matriz.shape[1],8):
-            if colunaLimite != 8:
-                colunaLimiteAnt = colunaLimite
-            aux = matriz[i:linhaLimite,j:colunaLimite]
-            indice = aux[0][0]
-            
-            
-            if i == 0 and j == 0:
-                DPCM[i//8].append(indice)
-            elif i > 0 and j == 0:
-                auxAnt = matriz[i-8:linhaLimite-8,colunaLimiteAnt-8:colunaLimiteAnt]
-                indiceAnt = auxAnt[0][0]
-                
-                DPCM[i//8].append(indiceAnt - indice)
-            else:
-                auxAnt = matriz[i:linhaLimite,j-8:colunaLimite-8]
-                indiceAnt = auxAnt[0][0]
-                
-                DPCM[i//8].append(indiceAnt - indice)
-
-            colunaLimite+=8
-        
-        colunaLimite=8
-        linhaLimite+=8
-        
-    print(DPCM)
-        
-    return matriz
-
 def codificacao_dpcm(matriz,bloco):
+    m2=np.zeros((matriz.shape))
     linhaLimite=bloco
-    colunaLimite=bloco*2
+    colunaLimite=bloco
+    primeiro_bloco=matriz[0:bloco,0:bloco]
+    
     for i in range(0,matriz.shape[0],bloco):
         for j in range(0,matriz.shape[1],bloco):
-            #dividir matriz em blocos
-            matriz_bloco=matriz[i:linhaLimite,j:colunaLimite-bloco]
-            print(i,linhaLimite,j,colunaLimite-bloco)
-            matriz_bloco_seguinte=matriz[i:linhaLimite,j+bloco:colunaLimite]
-            m=matriz_bloco_seguinte-matriz_bloco
-            matriz[i:linhaLimite,j:colunaLimite-bloco]=m
+            bloco_atual = matriz[i:linhaLimite,j:colunaLimite]
+            #se estivermos na primeira coluna - bloco anterior e o ultimo bloco da linha anterior
+            if(j==0):
+                bloco_anterior = matriz[i-bloco:i,matriz.shape[1]-bloco:matriz.shape[1]]
+            else:
+                bloco_anterior = matriz[i:linhaLimite, j-bloco:colunaLimite-bloco]
+            #evitar fazer a diferenca no primeiro bloco da primeira linha,primeira coluna
+            if(bloco_atual.shape==bloco_anterior.shape):
+                m2[i:linhaLimite,j:colunaLimite]=bloco_atual-bloco_anterior
+
             colunaLimite+=bloco
-        
-        colunaLimite=bloco*2
+        colunaLimite=bloco
         linhaLimite+=bloco
         
-    return matriz
-
-
+    m2[0:bloco,0:bloco]=primeiro_bloco
+    
+    return m2
+    
 
     
     
 def inversa_codificacao_dpcm(matriz,bloco):
     linhaLimite=bloco
     colunaLimite=bloco
+    primeiro_bloco=matriz[0:bloco,0:bloco]
+    
     for i in range(0,matriz.shape[0],bloco):
         for j in range(0,matriz.shape[1],bloco):
-            #dividir matriz em blocos
-            matriz_bloco=matriz[i:linhaLimite,j:colunaLimite]
-            #fazer a soma comulativa (vai retornar um vetor)
-            vetor_aux=np.cumsum(matriz_bloco)
-            #transformar o vetor numa matriz de dimensoes bloco x bloco
-            matriz_aux=np.reshape(vetor_aux, (bloco,bloco))
-            #colocar os valores originais na matriz
-            matriz[i:linhaLimite,j:colunaLimite]=matriz_aux
-            
+            bloco_atual = matriz[i:linhaLimite,j:colunaLimite]
+            #se estivermos na primeira coluna - bloco anterior e o ultimo bloco da linha anterior
+            if(j==0):
+                bloco_anterior = matriz[i-bloco:i,matriz.shape[1]-bloco:matriz.shape[1]]
+            else:
+                bloco_anterior = matriz[i:linhaLimite, j-bloco:colunaLimite-bloco]
+            #evitar fazer a diferenca no primeiro bloco da primeira linha,primeira coluna
+            if(bloco_atual.shape==bloco_anterior.shape):
+                matriz[i:linhaLimite,j:colunaLimite]=bloco_atual+bloco_anterior
+
             colunaLimite+=bloco
-        
         colunaLimite=bloco
         linhaLimite+=bloco
         
+    matriz[0:bloco,0:bloco]=primeiro_bloco
+    
     return matriz
 
 
@@ -690,11 +666,11 @@ def encoder(img, qf):
     y_quant, qsY, qsCbCr =quantizacao_Qualidade(qf, y_dct8, Y=True)
     cb_quant, qsY, qsCbCr =quantizacao_Qualidade(qf, cb_dct8, Y=False)
     cr_quant, qsY, qsCbCr =quantizacao_Qualidade(qf, cr_dct8, Y=False)
-    print(y_quant[8:16,8:16])
-    #decodificaçao DCPM
-    matrizY = codificacao_dpcmTESTE(y_quant, 8)
-    matrizCb = codificacao_dpcmTESTE(cb_quant, 8)
-    matrizCr = codificacao_dpcmTESTE(cr_quant, 8)
+    print(y_quant[0:8,0:8])
+    #codificaçao DM
+    matrizY = codificacao_dpcm(y_quant, 8)
+    matrizCb = codificacao_dpcm(cb_quant, 8)
+    matrizCr = codificacao_dpcm(cr_quant, 8)
     """matrizY = codificacao_dpcm(y_quant, 8)
     logY_matrizY=np.log(np.abs(matrizY) + 0.0001)
     visualizar_img_colormap(logY_matrizY, "Y_Q_DPCM", (0,0,0), (1,1,1), 256)
@@ -716,7 +692,8 @@ def decoder(nr_linhas, nr_colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr, ori
     y_quant = inversa_codificacao_dpcm(matrizY, 8)
     cb_quant = inversa_codificacao_dpcm(matrizCb, 8)
     cr_quant = inversa_codificacao_dpcm(matrizCr, 8)
-    
+    print("depois")
+    print(y_quant[0:8,0:8])
     
     #inverso da quantizacao
     y_dct = inversa_quantizacao_Qualidade(y_quant, qsY,qsCbCr)
@@ -740,21 +717,31 @@ def decoder(nr_linhas, nr_colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr, ori
     
     #reverter o padding
     img_original=reverse_padding(img_original, nr_linhas, nr_colunas)
-    
+
     
     return img_original
 
 
 def MSE(original, comprimida):
-    original, comprimida = np.array(original), np.array(comprimida)
-    return np.square(np.subtract(original, comprimida)).mean() 
+    diferenca = original-comprimida
+    diferenca = diferenca.astype('float')
+    diferenca_quadrada = diferenca**2
+    mse=(np.sum(diferenca_quadrada)) / (original[:,:,0].shape[0]*original[:,:,0].shape[1])
+    return mse
 
 def RMSE(mse):
     rmse = math.sqrt(mse)
     return rmse
 
+def calculoP(imagem):
+    p = np.sum(imagem)
+    p = p**2
+    p = p / (imagem[:,:,0].shape[0] * imagem[:,:,0].shape[1])
+    return p
+
+
 def SNR(mse, original):
-    p = np.square(original).mean()
+    p = calculoP(original)
     snr = 10 * math.log10(p / mse)
     return snr
 
