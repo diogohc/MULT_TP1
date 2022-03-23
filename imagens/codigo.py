@@ -674,6 +674,7 @@ def encoder(img, qf):
     y_quant, qsY, qsCbCr = quantizacao_Qualidade(qf, y_dct8, Y=True)
     cb_quant, qsY, qsCbCr = quantizacao_Qualidade(qf, cb_dct8, Y=False)
     cr_quant, qsY, qsCbCr = quantizacao_Qualidade(qf, cr_dct8, Y=False)
+    
     #codificaçao DPCM
     matrizY = codificacao_dpcm(y_quant, 8)
     matrizCb = codificacao_dpcm(cb_quant, 8)
@@ -728,7 +729,6 @@ def decoder(nr_linhas, nr_colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr, ori
     return img_original
 
 
-#barn mountains - 187
 def MSE(original, reconstruida):
     diferenca = original-reconstruida
     diferenca_quadrada = diferenca**2
@@ -745,7 +745,7 @@ def calculoP(imagem):
     p = p / (imagem[:,:,0].shape[0] * imagem[:,:,0].shape[1])
     return p
 
-#barn moutains- 25
+
 def SNR(mse, original):
     p = calculoP(original)
     snr = 10 * math.log10(p / mse)
@@ -764,11 +764,23 @@ def main():
     #descodificar
     img_reconstruida=decoder(linhas, colunas, y_d, cb_d, cr_d, qsy, qscbcr, img_original)
     
-    #mostrar imagem recosntruida
+    #mostrar imagem reconstruida
     plt.figure()
     plt.imshow(img_reconstruida)
     plt.axis('off')
     plt.title('Imagem Recontruida')
+    
+    
+    img_original_ycbcr = rgb_ycbcr(img_original)
+    img_reconstruida_ycbcr = rgb_ycbcr(img_reconstruida)
+    
+    canalY_img_original_ycbcr = img_original_ycbcr[:,:,0]
+    canalY_img_reconstruida_ycbcr = img_reconstruida_ycbcr[:,:,0]
+    
+    diferencas_canalY = abs(canalY_img_original_ycbcr -  canalY_img_reconstruida_ycbcr)
+    visualizar_img_colormap(diferencas_canalY, "Dif canal Y", (0,0,0), (1,1,1), 256)
+    
+    
     img_original=img_original.astype('float')
     img_reconstruida = img_reconstruida.astype('float')
     mse = MSE(img_original, img_reconstruida)
@@ -776,10 +788,12 @@ def main():
     snr = SNR(mse, img_original)
     psnr = PSNR(mse)
     
-    print("MSE  ", mse)
+    print("\nMSE  ", mse)
     print("RMSE  ", rmse)
     print("SNR  ", snr)
     print("PSNR  ", psnr)
+    
+    
     
            
 
