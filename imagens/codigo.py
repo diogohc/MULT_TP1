@@ -35,7 +35,7 @@ mQuantCbCr = np.array([[17, 18, 24, 47, 99, 99, 99, 99],
 showColormapRGB = True
 showColormapYCbCr = True
 showDownsampling = True
-showDCTimage = False
+showDCTimage = True
 showDCT8x8 = True
 showDCT64x64 = False
 
@@ -675,24 +675,20 @@ def encoder(img, qf):
     cb_quant, qsY, qsCbCr = quantizacao_Qualidade(qf, cb_dct8, Y=False)
     cr_quant, qsY, qsCbCr = quantizacao_Qualidade(qf, cr_dct8, Y=False)
     
-    #codificaçao DPCM
-    matrizY = codificacao_dpcm(y_quant, 8)
-    matrizCb = codificacao_dpcm(cb_quant, 8)
-    matrizCr = codificacao_dpcm(cr_quant, 8)
-    """matrizY = codificacao_dpcm(y_quant, 8)
     
+    #codificaçao DPCM
+    matrizY = codificacao_dpcm(y_quant, 8)    
     logY_matrizY=np.log(np.abs(matrizY) + 0.0001)
     visualizar_img_colormap(logY_matrizY, "Y_Q_DPCM", (0,0,0), (1,1,1), 256)
-    #print (matrizY[:,8])
+
     matrizCb = codificacao_dpcm(cb_quant, 8)
     logY_matrizCb=np.log(np.abs(matrizCb) + 0.0001)
     visualizar_img_colormap(logY_matrizCb, "CB_Q_DPCM", (0,0,0), (1,1,1), 256)
-    #print (matrizCb[:,8])
+
     matrizCr = codificacao_dpcm(cr_quant, 8)
     logY_matrizCr=np.log(np.abs(matrizCr) + 0.0001)
     visualizar_img_colormap(logY_matrizCr, "CR_Q_DPCM", (0,0,0), (1,1,1), 256)
-    #print (matrizCr[:,8])
-    print(matrizY[8:16,8:16])"""
+    
     return  linhas, colunas, matrizY, matrizCb, matrizCr, qsY, qsCbCr, img_original
 
 
@@ -795,8 +791,7 @@ def main():
     
     
     
-           
-
+         
 
 
 if __name__ == "__main__":
